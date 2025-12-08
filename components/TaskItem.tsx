@@ -1,6 +1,6 @@
 'use client'
 
-import { useOptimistic } from 'react'
+import { useOptimistic, startTransition } from 'react'
 import { toggleTask } from '@/app/actions'
 import { deleteTask } from '@/app/actions'
 
@@ -18,8 +18,11 @@ export default function TaskItem({ task }: { task: any }) {
       {/* 2. Update Checkbox to use Optimistic State */}
       <button 
         onClick={async () => {
-          // A. Update UI instantly
-          setOptimisticStatus(!optimisticTask.is_completed)
+          const newStatus = !optimisticTask.is_completed
+          // A. Update UI instantly (wrapped in startTransition)
+          startTransition(() => {
+            setOptimisticStatus(newStatus)
+          })
           // B. Update Server in background
           await toggleTask(task.id, task.is_completed)
         }}

@@ -33,15 +33,26 @@ export async function addGoal(formData: FormData) {
 export async function addTask(formData: FormData) {
   const { supabase, user } = await getUser() // ✅ REAL USER
   const title = formData.get('title') as string
-  const goalId = formData.get('goal_id') as string // <--- Get the selected Goal
+  const goalId = formData.get('goal_id') as string
+  const dateType = formData.get('date_type') as string
+  const specificDate = formData.get('specific_date') as string
 
   if (!title) return
+
+  // Determine due_date based on form inputs
+  let dueDate: string | null = null
+  if (dateType === 'backlog') {
+    dueDate = null // Backlog tasks have no due date
+  } else if (specificDate) {
+    dueDate = specificDate // Use the specific date provided
+  }
 
   await supabase.from('tasks').insert({
     title,
     user_id: user.id, // ✅ Using Real ID
     priority: 'medium',
-    goal_id: goalId !== 'none' ? goalId : null // <--- Save the relationship
+    goal_id: goalId && goalId !== 'none' ? goalId : null,
+    due_date: dueDate
   })
 
   revalidatePath('/')
