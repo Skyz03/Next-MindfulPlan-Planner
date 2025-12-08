@@ -80,3 +80,33 @@ export async function saveReflection(formData: FormData) {
   // Redirect to home or show a success message
   revalidatePath('/')
 }
+
+export async function deleteTask(formData: FormData) {
+  const { supabase, user } = await getUser()
+
+  const taskId = formData.get('taskId') as string
+
+  await supabase
+    .from('tasks')
+    .delete()
+    .eq('id', taskId)
+    .eq('user_id', user.id) // ✅ Ensure user can only delete their own tasks
+
+  revalidatePath('/')
+}
+
+export async function deleteGoal(formData: FormData) {
+  const { supabase, user } = await getUser()
+
+  const goalId = formData.get('goalId') as string
+
+  // Note: Since we set "ON DELETE SET NULL" in the database earlier,
+  // deleting a goal won't delete the tasks; it just unlinks them.
+  await supabase
+    .from('goals')
+    .delete()
+    .eq('id', goalId)
+    .eq('user_id', user.id) // ✅ Ensure user can only delete their own goals
+
+  revalidatePath('/')
+}

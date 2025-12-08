@@ -1,7 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
-import { addTask, addGoal, toggleTask } from './actions'
+import { addTask, addGoal, deleteGoal } from './actions'
 import { signout } from '@/app/auth/actions'
 import Link from 'next/link'
+import TaskItem from '@/components/TaskItem'
 
 async function getData() {
   const supabase = createClient()
@@ -52,8 +53,14 @@ export default async function Dashboard() {
             {goals.map(goal => (
               <div key={goal.id} className="group p-4 bg-white/40 hover:bg-white/80 border border-white/50 hover:border-indigo-200 rounded-2xl transition-all cursor-pointer shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-slate-700">{goal.title}</span>
-                  <span className="w-2 h-2 rounded-full bg-indigo-400 group-hover:bg-indigo-600 transition-colors"></span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-700">{goal.title}</span>
+                  </div>
+                  {/* --- NEW: Delete Goal Button --- */}
+                  <form action={deleteGoal} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <input type="hidden" name="goalId" value={goal.id} />
+                    <button className="text-slate-400 hover:text-red-500 text-xs">✕</button>
+                  </form>
                 </div>
                 <div className="w-full bg-gray-200/50 rounded-full h-1 mt-3 overflow-hidden">
                   <div className="bg-indigo-500 h-1 rounded-full w-[40%]"></div> {/* Mock progress */}
@@ -125,31 +132,7 @@ export default async function Dashboard() {
             </div>
           ) : (
             tasks.map((task) => (
-              <div key={task.id} className="group relative flex items-center gap-4 p-5 bg-white/40 hover:bg-white rounded-2xl border border-white/60 hover:border-indigo-100 shadow-sm hover:shadow-md transition-all duration-300">
-
-                {/* Custom Checkbox */}
-                <form action={toggleTask.bind(null, task.id, task.is_completed)}>
-                  <button className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300 ${task.is_completed ? 'bg-indigo-500 border-indigo-500 rotate-0' : 'border-slate-300 hover:border-indigo-400 rotate-0'}`}>
-                    <svg className={`w-3.5 h-3.5 text-white transform transition-transform ${task.is_completed ? 'scale-100' : 'scale-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                  </button>
-                </form>
-
-                <div className="flex-1">
-                  <p className={`text-lg font-medium transition-all duration-300 ${task.is_completed ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                    {task.title}
-                  </p>
-                </div>
-
-                {/* Badge */}
-                {task.goals && (
-                  <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold uppercase tracking-wider rounded-full border border-indigo-100">
-                    {task.goals.title}
-                  </span>
-                )}
-
-                {/* Hover Glow Effect */}
-                <div className="absolute inset-0 rounded-2xl bg-indigo-500/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"></div>
-              </div>
+              <TaskItem key={task.id} task={task} />
             ))
           )}
         </div>
