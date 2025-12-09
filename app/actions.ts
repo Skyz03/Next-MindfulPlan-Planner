@@ -44,10 +44,17 @@ export async function addTask(formData: FormData) {
   if (dateType === 'backlog') {
     dueDate = null // Backlog tasks have no due date
   } else if (specificDate) {
-    dueDate = specificDate // Use the specific date provided
+    // Normalize date to YYYY-MM-DD format (ensure no time component)
+    // If already in YYYY-MM-DD format, use it directly; otherwise parse it
+    if (/^\d{4}-\d{2}-\d{2}$/.test(specificDate)) {
+      dueDate = specificDate // Already in correct format
+    } else {
+      const date = new Date(specificDate)
+      dueDate = date.toISOString().split('T')[0] // Returns "YYYY-MM-DD"
+    }
   }
 
-  await supabase.from('tasks').insert({
+  const { error } = await supabase.from('tasks').insert({
     title,
     user_id: user.id, // ✅ Using Real ID
     priority: 'medium',
@@ -55,7 +62,13 @@ export async function addTask(formData: FormData) {
     due_date: dueDate
   })
 
-  revalidatePath('/')
+  if (error) {
+    console.error('Error adding task:', error)
+    return
+  }
+
+  // Revalidate the page - Next.js will preserve the current URL with query params
+  revalidatePath('/', 'layout')
 }
 
 export async function toggleTask(taskId: string, currentStatus: boolean) {
