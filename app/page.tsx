@@ -1,140 +1,216 @@
 import { createClient } from '@/utils/supabase/server'
-import { addTask, addGoal, deleteGoal } from './actions'
-import { signout } from '@/app/auth/actions'
+import { addTask, addGoal, toggleTask, deleteTask, deleteGoal } from './actions'
+import { getWeekDays, formatDate, isSameDay } from '@/utils/date'
 import Link from 'next/link'
 import TaskItem from '@/components/TaskItem'
 
-async function getData() {
+// 1. Accept searchParams (This is how we get the ?date=... from URL)
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>
+}) {
   const supabase = createClient()
+
+  // Await searchParams in Next.js 15+
+  const params = await searchParams
+
+  // Determine the Active Date (Default to Today)
+  const today = new Date()
+  const selectedDateStr = params.date || formatDate(today)
+  // Normalize the date string to ensure YYYY-MM-DD format
+  const normalizedDateStr = selectedDateStr.split('T')[0]
+  const selectedDate = new Date(normalizedDateStr)
+
+  // Generate the Strip (3 days before, 3 days after)
+  const weekDays = getWeekDays(selectedDate)
+
+  // 2. FETCH DATA (Parallel Fetching)
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (!user) {
-    return { tasks: [], goals: [] }
+    return null
   }
 
-  const [tasksResponse, goalsResponse] = await Promise.all([
-    supabase.from('tasks').select('*, goals(title)').eq('user_id', user.id).order('created_at', { ascending: false }),
-    supabase.from('goals').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+  const [scheduledTasks, backlogTasks, goalsResponse] = await Promise.all([
+    // Query A: Tasks for the SELECTED date
+    supabase.from('tasks')
+      .select('*, goals(title)')
+      .eq('user_id', user.id)
+      .eq('due_date', normalizedDateStr)
+      .order('created_at', { ascending: false }),
+    // Query B: Tasks with NO date (The Backlog)
+    supabase.from('tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .is('due_date', null) 
+      .order('created_at', { ascending: false }),
+    // Query C: Goals
+    supabase.from('goals')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
   ])
-  return { tasks: tasksResponse.data || [], goals: goalsResponse.data || [] }
-}
 
-export default async function Dashboard() {
-  const { tasks, goals } = await getData()
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short' })
+  const tasks = scheduledTasks.data || []
+  const backlog = backlogTasks.data || []
+  const goals = goalsResponse.data || []
 
   return (
-    <div className="flex h-screen p-4 gap-6 font-sans text-slate-800 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 text-slate-800 font-sans overflow-hidden">
 
-      {/* --- GLASS SIDEBAR (Navigation & Goals) --- */}
-      <aside className="w-80 flex flex-col bg-white/70 backdrop-blur-xl border border-white/40 rounded-3xl shadow-2xl p-6 transition-all">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Mindful<span className="text-indigo-600">Plan</span>.</h1>
-          <p className="text-slate-500 text-sm mt-1">Focus on what matters.</p>
-        </div>
-
+      {/* --- LEFT SIDEBAR: THE BACKLOG & GOALS --- */}
+      <aside className="w-80 bg-white border-r border-slate-200 flex flex-col z-20 shadow-xl">
         {/* Goals Section */}
-        <div className="flex-1 overflow-y-auto pr-2 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Visions</h3>
+        <div className="p-4 border-b border-slate-200">
+          <div className="mb-3">
+            <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wider mb-1">Goals</h2>
+            <p className="text-xs text-slate-400">Your long-term visions</p>
           </div>
-
-          {/* Add Goal Input */}
-          <form action={addGoal} className="relative group">
-            <input
-              name="title"
-              placeholder="+ New Goal"
-              className="w-full bg-white/50 border border-transparent focus:border-indigo-300 focus:bg-white rounded-xl py-3 px-4 text-sm outline-none transition-all placeholder:text-slate-400 shadow-sm"
+          
+          {/* Add Goal Form */}
+          <form action={addGoal} className="mb-3">
+            <input 
+              name="title" 
+              placeholder="+ New goal..." 
+              className="w-full bg-slate-100 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-indigo-200" 
             />
           </form>
 
-          {/* Goal Cards */}
-          <div className="space-y-3">
+          {/* Goals List */}
+          <div className="space-y-2 max-h-32 overflow-y-auto">
             {goals.map(goal => (
-              <div key={goal.id} className="group p-4 bg-white/40 hover:bg-white/80 border border-white/50 hover:border-indigo-200 rounded-2xl transition-all cursor-pointer shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-700">{goal.title}</span>
-                  </div>
-                  {/* --- NEW: Delete Goal Button --- */}
-                  <form action={deleteGoal} className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <input type="hidden" name="goalId" value={goal.id} />
-                    <button className="text-slate-400 hover:text-red-500 text-xs">✕</button>
-                  </form>
-                </div>
-                <div className="w-full bg-gray-200/50 rounded-full h-1 mt-3 overflow-hidden">
-                  <div className="bg-indigo-500 h-1 rounded-full w-[40%]"></div> {/* Mock progress */}
-                </div>
+              <div key={goal.id} className="group flex items-center justify-between p-2 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-colors">
+                <span className="text-sm font-medium text-indigo-700">{goal.title}</span>
+                <form action={deleteGoal} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <input type="hidden" name="goalId" value={goal.id} />
+                  <button className="text-indigo-400 hover:text-red-500 p-1" title="Delete Goal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </form>
               </div>
             ))}
+            {goals.length === 0 && <div className="text-center text-xs text-slate-400 py-2">No goals yet</div>}
           </div>
         </div>
 
-        {/* Bottom Actions */}
-        <div className="mt-auto pt-6 border-t border-slate-200/50 space-y-3">
-          <Link href="/reflection" className="flex items-center justify-center gap-2 w-full py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 hover:shadow-lg transition-all text-sm font-medium">
-            <span>✨ Weekly Reflection</span>
-          </Link>
-          <form action={signout}>
-            <button className="w-full py-3 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-xl hover:shadow-lg transition-all text-sm font-medium border border-red-200">
-              Sign Out
-            </button>
-          </form>
+        {/* Backlog Section */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+            <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wider">Idea Backlog</h2>
+            <p className="text-xs text-slate-400 mt-1">Drag these to your calendar</p>
+          </div>
+
+          {/* Quick Add to Backlog */}
+          <div className="p-4">
+            <form action={addTask} className="space-y-2">
+              <input type="hidden" name="date_type" value="backlog" /> 
+              <input name="title" placeholder="+ Add idea..." className="w-full bg-slate-100 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-indigo-200" />
+              {goals.length > 0 && (
+                <select 
+                  name="goal_id" 
+                  className="w-full bg-slate-100 border-none rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 ring-indigo-200 text-slate-600"
+                  defaultValue="none"
+                >
+                  <option value="none">No Goal</option>
+                  {goals.map(goal => (
+                    <option key={goal.id} value={goal.id}>{goal.title}</option>
+                  ))}
+                </select>
+              )}
+            </form>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {backlog.map(task => (
+              <div key={task.id} className="p-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:border-indigo-300 cursor-move shadow-sm">
+                {task.title}
+              </div>
+            ))}
+            {backlog.length === 0 && <div className="text-center text-xs text-slate-400 mt-10">Backlog empty</div>}
+          </div>
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT (Tasks) --- */}
-      <main className="flex-1 flex flex-col h-full bg-white/60 backdrop-blur-md rounded-3xl shadow-2xl border border-white/40 relative overflow-hidden">
+      {/* --- MAIN CONTENT: THE CALENDAR VIEW --- */}
+      <main className="flex-1 flex flex-col relative bg-white/50 backdrop-blur-3xl">
 
-        {/* Header */}
-        <header className="p-8 pb-4 flex justify-between items-end bg-gradient-to-b from-white/50 to-transparent">
-          <div>
-            <h2 className="text-4xl font-extrabold text-slate-800 tracking-tight">Good Day.</h2>
-            <p className="text-slate-500 mt-2 font-medium">{today}</p>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-indigo-600">{tasks.filter(t => !t.is_completed).length}</div>
-            <div className="text-xs font-bold text-slate-400 uppercase">Pending</div>
-          </div>
-        </header>
-
-        {/* Task Input Area */}
-        <div className="px-8 py-4">
-          <form action={addTask} className="relative flex items-center bg-white rounded-2xl shadow-lg border border-slate-100 p-2 focus-within:ring-2 ring-indigo-100 transition-all">
-            <div className="pl-4 pr-3 text-slate-400">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-            </div>
-            <input
-              name="title"
-              type="text"
-              placeholder="What's your main focus?"
-              className="flex-1 bg-transparent text-lg outline-none placeholder:text-slate-300 text-slate-700 py-2"
-              autoComplete="off"
-            />
-
-            {/* Minimalist Dropdown */}
-            <select name="goal_id" className="mr-2 text-xs bg-slate-50 border-none rounded-lg py-2 px-3 text-slate-500 font-medium outline-none cursor-pointer hover:bg-slate-100">
-              <option value="none">General Task</option>
-              {goals.map(g => <option key={g.id} value={g.id}>{g.title}</option>)}
-            </select>
-
-            <button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 py-2.5 font-medium transition-all shadow-md hover:shadow-indigo-200">
-              Add
-            </button>
-          </form>
+        {/* 1. THE WEEK STRIP */}
+        <div className="h-24 border-b border-slate-200/60 flex items-center justify-center gap-4 bg-white/40 backdrop-blur-md">
+          {weekDays.map((day) => {
+            const dateStr = formatDate(day)
+            const isActive = dateStr === normalizedDateStr
+            const isToday = isSameDay(day, today)
+            return (
+              <Link 
+                key={dateStr} 
+                href={`/?date=${dateStr}`}
+                scroll={false}
+                className={`flex flex-col items-center justify-center w-14 h-16 rounded-2xl transition-all duration-200 border cursor-pointer ${
+                  isActive 
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 border-transparent scale-110' 
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
+                }`}
+              >
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                  {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                </span>
+                <span className={`text-xl font-bold ${isActive ? 'text-white' : 'text-slate-800'}`}>
+                  {day.getDate()}
+                </span>
+                {isToday && !isActive && <div className="w-1 h-1 bg-indigo-500 rounded-full mt-1"></div>}
+              </Link>
+            )
+          })}
         </div>
 
-        {/* Scrollable Task List */}
-        <div className="flex-1 overflow-y-auto px-8 pb-8 space-y-3">
-          {tasks.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
-              <p className="text-lg">No tasks yet. Enjoy the silence.</p>
-            </div>
-          ) : (
-            tasks.map((task) => (
-              <TaskItem key={task.id} task={task} />
-            ))
-          )}
+        {/* 2. THE DAY VIEW */}
+        <div className="flex-1 p-8 overflow-y-auto">
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold text-slate-800">
+              {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </h1>
+            <p className="text-slate-500">
+              {tasks.length} tasks scheduled for this day.
+            </p>
+          </header>
+
+          {/* Add Task for THIS Specific Date */}
+          <div className="mb-6">
+            <form action={addTask} className="relative flex gap-2">
+              <input type="hidden" name="specific_date" value={normalizedDateStr} />
+              <input 
+                name="title" 
+                placeholder={`Add a task for ${selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}...`}
+                className="flex-1 bg-white border border-slate-200 rounded-xl p-4 shadow-sm outline-none focus:ring-2 ring-indigo-500/20" 
+              />
+              {goals.length > 0 && (
+                <select 
+                  name="goal_id" 
+                  className="bg-white border border-slate-200 rounded-xl px-4 shadow-sm outline-none focus:ring-2 ring-indigo-500/20 text-sm text-slate-600"
+                  defaultValue="none"
+                >
+                  <option value="none">No Goal</option>
+                  {goals.map(goal => (
+                    <option key={goal.id} value={goal.id}>{goal.title}</option>
+                  ))}
+                </select>
+              )}
+            </form>
+          </div>
+
+          <div className="space-y-3">
+            {tasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400">
+                <p>Free day! Drag items from backlog?</p>
+              </div>
+            ) : (
+              tasks.map(task => <TaskItem key={task.id} task={task} />)
+            )}
+          </div>
         </div>
       </main>
     </div>

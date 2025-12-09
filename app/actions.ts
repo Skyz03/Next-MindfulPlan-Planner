@@ -33,18 +33,42 @@ export async function addGoal(formData: FormData) {
 export async function addTask(formData: FormData) {
   const { supabase, user } = await getUser() // ✅ REAL USER
   const title = formData.get('title') as string
-  const goalId = formData.get('goal_id') as string // <--- Get the selected Goal
+  const goalId = formData.get('goal_id') as string
+  const dateType = formData.get('date_type') as string
+  const specificDate = formData.get('specific_date') as string
 
   if (!title) return
 
-  await supabase.from('tasks').insert({
+  // Determine due_date based on form inputs
+  let dueDate: string | null = null
+  if (dateType === 'backlog') {
+    dueDate = null // Backlog tasks have no due date
+  } else if (specificDate) {
+    // Normalize date to YYYY-MM-DD format (ensure no time component)
+    // If already in YYYY-MM-DD format, use it directly; otherwise parse it
+    if (/^\d{4}-\d{2}-\d{2}$/.test(specificDate)) {
+      dueDate = specificDate // Already in correct format
+    } else {
+      const date = new Date(specificDate)
+      dueDate = date.toISOString().split('T')[0] // Returns "YYYY-MM-DD"
+    }
+  }
+
+  const { error } = await supabase.from('tasks').insert({
     title,
     user_id: user.id, // ✅ Using Real ID
     priority: 'medium',
-    goal_id: goalId !== 'none' ? goalId : null // <--- Save the relationship
+    goal_id: goalId && goalId !== 'none' ? goalId : null,
+    due_date: dueDate
   })
 
-  revalidatePath('/')
+  if (error) {
+    console.error('Error adding task:', error)
+    return
+  }
+
+  // Revalidate the page - Next.js will preserve the current URL with query params
+  revalidatePath('/', 'layout')
 }
 
 export async function toggleTask(taskId: string, currentStatus: boolean) {
