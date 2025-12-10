@@ -1,116 +1,142 @@
-import { getReviewData } from '@/utils/analytics'
-import { saveReflection } from '@/app/actions'
+import { getWeeklyReport } from '@/utils/analytics'
 import Link from 'next/link'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export default async function ReflectionPage() {
-  const { history, topFocus, totalDone } = await getReviewData()
+  const data = await getWeeklyReport()
+
+  if (!data) return <div className="p-10">Loading...</div>
+
+  const { score, total, completed, activityByDay, goalBreakdown, biggestWin } = data
+
+  // Dynamic Color for Score
+  const scoreColor = score >= 80 ? 'text-green-500' : score >= 50 ? 'text-indigo-500' : 'text-orange-500'
+  const scoreMessage = score >= 80 ? 'Elite Performance' : score >= 50 ? 'Steady Progress' : 'Needs Focus'
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6 flex justify-center font-sans text-slate-800">
-      <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {/* --- LEFT COLUMN: THE INTELLIGENCE (Read Only) --- */}
-        <div className="space-y-6">
-          
-          {/* 1. The Insight Card */}
-          <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-200">
-            <h1 className="text-2xl font-bold mb-1">Weekly Digest</h1>
-            <p className="text-indigo-200 text-sm mb-6">Your data tells a story.</p>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm">
-                <div className="text-3xl font-bold">{totalDone}</div>
-                <div className="text-xs uppercase tracking-wider opacity-70">Tasks Crushed</div>
-              </div>
-              <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm">
-                <div className="text-lg font-bold truncate leading-tight">{topFocus}</div>
-                <div className="text-xs uppercase tracking-wider opacity-70">Main Focus</div>
-              </div>
-            </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans p-4 md:p-8 transition-colors">
 
-            {/* AI-Style Insight Text */}
-            <div className="mt-6 pt-6 border-t border-white/10">
-              <p className="italic opacity-90 text-sm">
-                "You directed most of your energy toward <span className="font-bold">{topFocus}</span> this week. 
-                {totalDone < 5 ? " It looks like a lighter week than usual." : " You kept a high velocity."} 
-                Keep it up!"
-              </p>
+      {/* HEADER */}
+      <header className="max-w-5xl mx-auto mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Weekly Intelligence</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Data-driven analysis of your performance.</p>
+        </div>
+        <div className="flex gap-4 items-center">
+          <ThemeToggle />
+          <Link href="/" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-2 rounded-lg text-sm font-medium hover:border-indigo-500 transition-colors">
+            Close Report
+          </Link>
+        </div>
+      </header>
+
+      {/* BENTO GRID LAYOUT */}
+      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        {/* CARD 1: THE SCORE (Big Square) */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-32 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Productivity Score</h3>
+            <div className={`text-6xl font-black mt-2 ${scoreColor}`}>
+              {score}%
             </div>
+            <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">{scoreMessage}</p>
           </div>
 
-          {/* 2. The History Timeline (Scrollable) */}
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 h-[500px] flex flex-col">
-            <h2 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-              <span>📜</span> Accomplishment Log
-            </h2>
-            
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-              {history.length === 0 && (
-                <p className="text-slate-400 text-sm text-center mt-10">No completed tasks yet.</p>
-              )}
-              
-              {history.map((task: any) => (
-                <div key={task.id} className="flex gap-3 text-sm border-b border-slate-50 pb-3 last:border-0">
-                  <div className="mt-1 min-w-[4px] h-4 bg-green-400 rounded-full"></div>
-                  <div>
-                    <p className="text-slate-700 font-medium line-through decoration-slate-300">{task.title}</p>
-                    <div className="flex gap-2 mt-1">
-                      <span className="text-xs text-slate-400">{new Date(task.created_at).toLocaleDateString('en-US', { weekday: 'short' })}</span>
-                      {task.goals && (
-                        <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-100 uppercase font-bold tracking-wide">
-                          {task.goals.title}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+          <div className="mt-8">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-slate-500">Tasks</span>
+              <span className="font-bold">{completed} <span className="text-slate-400 font-normal">/ {total}</span></span>
+            </div>
+            {/* Progress Bar */}
+            <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${score}%` }}></div>
             </div>
           </div>
         </div>
 
-        {/* --- RIGHT COLUMN: THE REFLECTION (Actionable) --- */}
-        <div className="flex flex-col h-full">
-           <div className="bg-white rounded-3xl p-8 shadow-xl border border-white/50 sticky top-6">
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-slate-800">Journal</h2>
-                <p className="text-slate-400 text-sm">Review the data on the left, then write.</p>
-              </div>
+        {/* CARD 2: GOAL ALIGNMENT (Tall Rectangle) */}
+        <div className="md:col-span-1 md:row-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex flex-col">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6">Focus Distribution</h3>
 
-              <form action={saveReflection} className="space-y-6">
-                <input type="hidden" name="completed_count" value={totalDone} />
-                <input type="hidden" name="week_start" value={new Date().toISOString()} />
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    Looking at your log, what stands out?
-                  </label>
-                  <textarea 
-                    name="win" 
-                    className="w-full bg-slate-50 border-none rounded-xl p-4 text-slate-700 focus:ring-2 ring-indigo-200 outline-none h-32 resize-none"
-                    placeholder="I noticed I accomplished a lot of..."
-                  />
+          <div className="flex-1 space-y-5">
+            {goalBreakdown.length === 0 && <p className="text-slate-400 text-sm">No goals linked this week.</p>}
+            {goalBreakdown.map((goal) => {
+              const percentage = Math.round((goal.completed / goal.total) * 100) || 0
+              return (
+                <div key={goal.name}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="font-medium truncate pr-4">{goal.name}</span>
+                    <span className="text-slate-400 text-xs">{goal.completed}/{goal.total}</span>
+                  </div>
+                  <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${percentage === 100 ? 'bg-green-500' : 'bg-indigo-500'}`}
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
                 </div>
+              )
+            })}
+          </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    What got in the way?
-                  </label>
-                  <textarea 
-                    name="challenge" 
-                    className="w-full bg-slate-50 border-none rounded-xl p-4 text-slate-700 focus:ring-2 ring-indigo-200 outline-none h-24 resize-none"
-                    placeholder="I didn't get to my Health goals because..."
-                  />
-                </div>
+          <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              <span className="font-bold text-indigo-500">Insight:</span> You spent most of your effort on <span className="text-slate-800 dark:text-slate-200 font-bold">"{goalBreakdown[0]?.name || 'Tasks'}"</span> this week.
+            </p>
+          </div>
+        </div>
 
-                <div className="pt-4 flex items-center justify-between">
-                   <Link href="/" className="text-slate-400 hover:text-slate-600 text-sm font-medium">Cancel</Link>
-                   <button type="submit" className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:scale-105 transition-transform">
-                     Save Review
-                   </button>
+        {/* CARD 3: VELOCITY GRAPH (Wide Rectangle) */}
+        <div className="md:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6">Daily Velocity</h3>
+
+          {/* CSS-Only Bar Chart */}
+          <div className="flex items-end justify-between h-32 gap-2">
+            {activityByDay.map((day) => {
+              // Calculate height relative to max (simple normalization)
+              const max = Math.max(...activityByDay.map(d => d.total)) || 1
+              const heightPct = Math.round((day.total / max) * 100)
+
+              return (
+                <div key={day.day} className="flex-1 flex flex-col items-center gap-2 group">
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-t-lg relative h-full flex items-end overflow-hidden">
+                    {/* Filled part */}
+                    <div
+                      className="w-full bg-indigo-500 opacity-80 group-hover:opacity-100 transition-all"
+                      style={{ height: `${heightPct}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">{day.day}</span>
                 </div>
-              </form>
-           </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* CARD 4: BIGGEST WIN (Wide Rectangle) */}
+        <div className="md:col-span-2 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white relative overflow-hidden">
+          {/* Decorative bg */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+
+          <div className="relative z-10 flex items-start gap-4">
+            <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" /><path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" /><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" /><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" /></svg>
+            </div>
+            <div>
+              <h3 className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-1">Biggest Win</h3>
+              {biggestWin ? (
+                <>
+                  <p className="text-xl font-bold">{biggestWin.title}</p>
+                  <p className="text-indigo-200 text-sm mt-1 opacity-80">Completed on {new Date(biggestWin.created_at).toLocaleDateString()}</p>
+                </>
+              ) : (
+                <p className="text-xl font-bold opacity-50">No major tasks completed yet.</p>
+              )}
+            </div>
+          </div>
         </div>
 
       </div>
