@@ -1,59 +1,60 @@
 import { createClient } from '@/utils/supabase/server'
+import { getWeekDays, isSameDay } from '@/utils/date'
 
-export async function getReviewData() {
+export async function getWeeklyReport() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // 1. Calculate Week Range
-  const today = new Date()
-  const lastSunday = new Date(today)
-  lastSunday.setDate(today.getDate() - today.getDay())
-  lastSunday.setHours(0, 0, 0, 0)
+  // 1. Get the current Week Range (Mon - Sun)
+  const weekDays = getWeekDays(new Date())
+  const startStr = weekDays[0].toISOString()
+  const endStr = weekDays[6].toISOString()
 
-  // 2. Fetch Completed Tasks with Goal Info
+  // 2. Fetch ALL tasks for this week (Created or Due this week)
   const { data: tasks } = await supabase
     .from('tasks')
-    .select(`
-      id, 
-      title, 
-      created_at, 
-      due_date,
-      priority,
-      goals ( title, id )
-    `)
+    .select(`*, goals(title, id)`)
     .eq('user_id', user?.id)
-    .eq('is_completed', true)
-    .gte('created_at', lastSunday.toISOString())
-    .order('created_at', { ascending: false })
+    .gte('due_date', startStr) // Simplified for demo
+    .lte('due_date', endStr)
 
-  // 3. Simple "Intelligence" Grouping
-  // Calculate which goal got the most attention
-  const goalCounts: Record<string, number> = {}
-  tasks?.forEach(t => {
-    let goalName = 'Uncategorized'
-    // "goals" might be an array or null. Handle both cases.
-    if (Array.isArray(t.goals) && t.goals.length > 0) {
-      // Take the first goal's title if present
-      goalName = t.goals[0]?.title || 'Uncategorized'
-    } else if (
-      t.goals &&
-      typeof t.goals === 'object' &&
-      !Array.isArray(t.goals) &&
-      typeof (t.goals as any).title === 'string'
-    ) {
-      // Handle single goal object (precaution for future model change)
-      goalName = (t.goals as { title: string }).title || 'Uncategorized'
+  if (!tasks) return null
+
+  // --- METRIC 1: COMPLETION SCORE ---
+  const total = tasks.length
+  const completed = tasks.filter(t => t.is_completed).length
+  const score = total === 0 ? 0 : Math.round((completed / total) * 100)
+
+  // --- METRIC 2: ACTIVITY BY DAY (Velocity) ---
+  const activityByDay = weekDays.map(day => {
+    const dayTasks = tasks.filter(t => isSameDay(new Date(t.due_date), day))
+    return {
+      day: day.toLocaleDateString('en-US', { weekday: 'short' }), // "Mon"
+      total: dayTasks.length,
+      completed: dayTasks.filter(t => t.is_completed).length
     }
-    goalCounts[goalName] = (goalCounts[goalName] || 0) + 1
   })
 
-  // Find top focus
-  const sortedGoals = Object.entries(goalCounts).sort(([,a], [,b]) => b - a)
-  const topFocus = sortedGoals[0]?.[0] || 'Nothing specific'
+  // --- METRIC 3: GOAL DISTRIBUTION ---
+  const goalStats: Record<string, { total: number, completed: number, id: string }> = {}
 
-  return { 
-    history: tasks || [], 
-    topFocus,
-    totalDone: tasks?.length || 0 
-  }
+  tasks.forEach(t => {
+    const goalTitle = t.goals?.title || 'Uncategorized'
+    if (!goalStats[goalTitle]) {
+      goalStats[goalTitle] = { total: 0, completed: 0, id: t.goal_id || 'none' }
+    }
+    goalStats[goalTitle].total += 1
+    if (t.is_completed) goalStats[goalTitle].completed += 1
+  })
+
+  const goalBreakdown = Object.entries(goalStats)
+    .map(([name, stats]) => ({ name, ...stats }))
+    .sort((a, b) => b.total - a.total) // Sort by most busy
+
+  // --- METRIC 4: BIGGEST WIN ---
+  // Simple logic: The completed task created earliest (oldest backlog item done)
+  // or just the last completed task.
+  const biggestWin = tasks.filter(t => t.is_completed).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0]
+
+  return { score, total, completed, activityByDay, goalBreakdown, biggestWin }
 }
