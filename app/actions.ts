@@ -134,3 +134,20 @@ export async function deleteGoal(formData: FormData) {
 
   revalidatePath('/')
 }
+
+
+export async function scheduleTask(formData: FormData) {
+  const { supabase, user } = await getUser()
+  const taskId = formData.get('taskId') as string
+  const date = formData.get('date') as string
+
+  if (!taskId || !date) return
+
+  await supabase
+    .from('tasks')
+    .update({ due_date: date })
+    .eq('id', taskId)
+    .eq('user_id', user.id)
+
+  revalidatePath('/')
+}
