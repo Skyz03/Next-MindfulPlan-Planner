@@ -3,17 +3,21 @@ import { addTask, addGoal, toggleTask, deleteGoal, scheduleTask } from './action
 import { getWeekDays, formatDate, isSameDay } from '@/utils/date'
 import Link from 'next/link'
 import TaskItem from '@/components/TaskItem'
+import PlannerBoard from '@/components/PlannerBoard'
+import DraggableTask from '@/components/DraggableTask'
+import DroppableDay from '@/components/DroppableDay'
+import PlanningGrid from '@/components/PlanningGrid'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import EditableText from '@/components/EditableText'
 
 export default async function Dashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>
+  searchParams: Promise<{ date?: string; view?: string }>
 }) {
   const supabase = createClient()
   const params = await searchParams
-  const viewMode = (params as any)?.view || 'focus' // 'focus' | 'plan'
+  const viewMode = params.view || 'focus' // 'focus' | 'plan'
 
   const today = new Date()
   const selectedDateStr = params.date || formatDate(today)
@@ -61,10 +65,11 @@ export default async function Dashboard({
   const orphanedTasks = weeklyList.filter(t => !t.goal_id)
 
   return (
-    <div className="flex h-screen bg-[#FAFAF9] dark:bg-[#1C1917] text-stone-800 dark:text-stone-200 font-sans overflow-hidden transition-colors duration-500 selection:bg-orange-200 dark:selection:bg-orange-900">
+    <PlannerBoard>
+      <div className="flex h-screen bg-[#FAFAF9] dark:bg-[#1C1917] text-stone-800 dark:text-stone-200 font-sans overflow-hidden transition-colors duration-500 selection:bg-orange-200 dark:selection:bg-orange-900">
 
-      {/* --- SIDEBAR (Unchanged) --- */}
-      <aside className="w-80 bg-[#F5F5F4] dark:bg-[#292524] border-r border-stone-200 dark:border-stone-800 flex flex-col z-20 transition-colors duration-500">
+      {/* --- SIDEBAR --- */}
+      <DroppableDay dateStr={null} className="w-80 bg-[#F5F5F4] dark:bg-[#292524] border-r border-stone-200 dark:border-stone-800 flex flex-col z-20 transition-colors duration-500">
         {/* ... (Keep your existing sidebar code exactly the same) ... */}
         <div className="p-8 pb-4 flex justify-between items-center">
           <div>
@@ -73,20 +78,6 @@ export default async function Dashboard({
           </div>
           <ThemeToggle />
 
-          <div className="flex bg-stone-200 dark:bg-stone-800 p-1 rounded-lg">
-            <Link
-              href={`/?date=${normalizedDateStr}&view=focus`}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${viewMode === 'focus' ? 'bg-white dark:bg-stone-600 shadow-sm text-stone-800 dark:text-stone-100' : 'text-stone-500 hover:text-stone-700'}`}
-            >
-              Focus
-            </Link>
-            <Link
-              href={`/?date=${normalizedDateStr}&view=plan`}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${viewMode === 'plan' ? 'bg-white dark:bg-stone-600 shadow-sm text-stone-800 dark:text-stone-100' : 'text-stone-500 hover:text-stone-700'}`}
-            >
-              Plan
-            </Link>
-          </div>
         </div>
 
         {/* Simplified Goal Tree for brevity in this snippet */}
@@ -109,16 +100,13 @@ export default async function Dashboard({
               <div className="pl-8 space-y-2 relative">
                 {goal.steps.length === 0 && <p className="text-[10px] text-stone-400 italic mb-2">Add a step...</p>}
                 {goal.steps.map((task: any) => (
-                  <div key={task.id} className="group flex items-center justify-between p-2 bg-white dark:bg-stone-800/50 rounded-lg border border-stone-200 dark:border-stone-700/50 hover:shadow-md hover:border-orange-200 dark:hover:border-orange-900 transition-all duration-200">
-                    <div className="flex-1 truncate max-w-[140px]">
-                      <EditableText id={task.id} initialText={task.title} type="task" className="text-xs font-medium text-stone-600 dark:text-stone-300" />
+                  <DraggableTask key={task.id} task={task}>
+                    <div className="group flex items-center justify-between p-2 bg-white dark:bg-stone-800/50 rounded-lg border border-stone-200 dark:border-stone-700/50 hover:shadow-md hover:border-orange-200 dark:hover:border-orange-900 transition-all duration-200 cursor-grab">
+                      <div className="flex-1 truncate max-w-[140px]">
+                        <EditableText id={task.id} initialText={task.title} type="task" className="text-xs font-medium text-stone-600 dark:text-stone-300" />
+                      </div>
                     </div>
-                    <form action={scheduleTask}>
-                      <input type="hidden" name="taskId" value={task.id} />
-                      <input type="hidden" name="date" value={normalizedDateStr} />
-                      <button className="text-[10px] bg-stone-100 dark:bg-stone-700 text-stone-500 hover:bg-orange-500 hover:text-white px-2 py-0.5 rounded-md transition-colors">Add</button>
-                    </form>
-                  </div>
+                  </DraggableTask>
                 ))}
                 <form action={addTask} className="mt-2">
                   <input type="hidden" name="date_type" value="backlog" />
@@ -134,13 +122,41 @@ export default async function Dashboard({
             </form>
           </div>
         </div>
-      </aside>
+      </DroppableDay>
 
       {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 flex flex-col relative z-10">
+      <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
+        
+        {/* HEADER WITH VIEW TOGGLE */}
+        <div className="h-16 px-8 flex items-center justify-between border-b border-stone-200 dark:border-stone-800 bg-[#FAFAF9] dark:bg-[#1C1917]">
+          <h1 className="text-lg font-serif font-bold text-stone-900 dark:text-stone-100">
+            {viewMode === 'plan' ? 'Weekly Strategy' : 'Daily Focus'}
+          </h1>
+          <div className="flex bg-stone-200 dark:bg-stone-800 p-1 rounded-lg">
+            <Link 
+              href={`/?date=${normalizedDateStr}&view=focus`} 
+              className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${viewMode === 'focus' ? 'bg-white dark:bg-stone-600 shadow-sm text-stone-800 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}
+            >
+              Focus
+            </Link>
+            <Link 
+              href={`/?date=${normalizedDateStr}&view=plan`} 
+              className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${viewMode === 'plan' ? 'bg-white dark:bg-stone-600 shadow-sm text-stone-800 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}
+            >
+              Plan
+            </Link>
+          </div>
+        </div>
 
-        {/* WEEK STRIP WITH CAPACITY BARS */}
-        <div className="h-40 flex flex-col pt-6 px-8 bg-[#FAFAF9] dark:bg-[#1C1917]">
+        {/* CONDITIONAL VIEW */}
+        {viewMode === 'plan' ? (
+          // --- PLAN MODE ---
+          <PlanningGrid weekDays={weekDays} allTasks={allWeekTasks} />
+        ) : (
+          // --- FOCUS MODE ---
+          <>
+            {/* WEEK STRIP WITH CAPACITY BARS */}
+            <div className="h-40 flex flex-col pt-6 px-8 bg-[#FAFAF9] dark:bg-[#1C1917]">
 
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xs font-bold uppercase tracking-widest text-stone-400 dark:text-stone-500">
@@ -178,17 +194,17 @@ export default async function Dashboard({
               }
 
               return (
-                <Link
-                  key={dateStr}
-                  href={`/?date=${dateStr}`}
-                  scroll={false}
-                  className={`flex-1 h-20 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-300 border-2 cursor-pointer relative overflow-hidden group
-                    ${isActive
-                      ? 'bg-stone-800 dark:bg-stone-200 border-stone-800 dark:border-stone-200 text-white dark:text-stone-900 shadow-lg scale-105 z-10'
-                      : 'bg-white dark:bg-stone-800 border-transparent hover:border-stone-200 dark:hover:border-stone-700 text-stone-500'
-                    }
-                  `}
-                >
+                <DroppableDay key={dateStr} dateStr={dateStr} className="flex-1 h-20">
+                  <Link
+                    href={`/?date=${dateStr}&view=focus`}
+                    scroll={false}
+                    className={`block h-full rounded-2xl flex flex-col items-center justify-center gap-1 transition-all duration-300 border-2 cursor-pointer relative overflow-hidden group
+                      ${isActive
+                        ? 'bg-stone-800 dark:bg-stone-200 border-stone-800 dark:border-stone-200 text-white dark:text-stone-900 shadow-lg scale-105 z-10'
+                        : 'bg-white dark:bg-stone-800 border-transparent hover:border-stone-200 dark:hover:border-stone-700 text-stone-500'
+                      }
+                    `}
+                  >
                   <span className="text-[10px] font-bold uppercase tracking-wide opacity-80">{day.toLocaleDateString('en-US', { weekday: 'short' })}</span>
                   <span className="text-xl font-serif font-bold leading-none">{day.getDate()}</span>
 
@@ -207,14 +223,15 @@ export default async function Dashboard({
                   <div className="absolute -top-8 bg-stone-900 text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     {dayLoad} tasks
                   </div>
-                </Link>
+                  </Link>
+                </DroppableDay>
               )
             })}
           </div>
         </div>
 
-        {/* DAILY VIEW (Unchanged) */}
-        <div className="flex-1 px-8 md:px-12 lg:px-20 overflow-y-auto custom-scrollbar">
+            {/* DAILY VIEW */}
+            <div className="flex-1 px-8 md:px-12 lg:px-20 overflow-y-auto custom-scrollbar">
           <header className="mt-8 mb-10 pb-6 border-b border-stone-200 dark:border-stone-800 flex items-baseline justify-between">
             <div>
               <h1 className="text-5xl md:text-6xl font-serif font-medium text-stone-900 dark:text-stone-50 tracking-tight mb-2">
@@ -237,7 +254,11 @@ export default async function Dashboard({
                 <p className="text-stone-400 mt-4 text-sm">Add a task to begin.</p>
               </div>
             ) : (
-              tasks.map(task => <TaskItem key={task.id} task={task} />)
+              tasks.map(task => (
+                <DraggableTask key={task.id} task={task}>
+                  <TaskItem task={task} />
+                </DraggableTask>
+              ))
             )}
 
             <div className="group pt-4 opacity-70 hover:opacity-100 transition-opacity">
@@ -262,7 +283,10 @@ export default async function Dashboard({
             </div>
           </div>
         </div>
+          </>
+        )}
       </main>
-    </div>
+      </div>
+    </PlannerBoard>
   )
 }
