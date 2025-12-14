@@ -3,14 +3,13 @@
 import { useDroppable } from '@dnd-kit/core'
 import DraggableTask from './DraggableTask'
 import { useEffect, useState, useRef } from 'react'
-import { scheduleTaskTime } from '@/app/actions' // Ensure this action is imported
+import { scheduleTaskTime, toggleTask } from '@/app/actions' // <--- Import toggleTask
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5) // 5 AM to 10 PM
 const PIXELS_PER_HOUR = 120
 
 export default function TimeGrid({ tasks }: { tasks: any[] }) {
     const [now, setNow] = useState<Date | null>(null)
-    // State to track which time slot is currently being clicked
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
     const menuRef = useRef<HTMLDivElement>(null)
 
@@ -18,7 +17,6 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
         setNow(new Date())
         const interval = setInterval(() => setNow(new Date()), 60000)
 
-        // Click outside to close menu
         function handleClickOutside(event: MouseEvent) {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 setSelectedSlot(null)
@@ -32,9 +30,9 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
     }, [])
 
     const scheduledTasks = tasks.filter(t => t.start_time)
-    const unscheduledTasks = tasks.filter(t => !t.start_time)
+    const unscheduledTasks = tasks.filter(t => !t.start_time && !t.is_completed) // Hide completed from dock
 
-    // Current time line calculation
+    // Current time line
     let nowPosition = -1
     if (now) {
         const currentHour = now.getHours()
@@ -44,17 +42,19 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
         }
     }
 
-    // Action: Assign task to selected slot
     async function quickSchedule(taskId: string) {
         if (!selectedSlot) return
-        // Optimistic UI update could go here
         await scheduleTaskTime(taskId, selectedSlot, 60)
         setSelectedSlot(null)
     }
 
-    // Action: Remove time (Back to Dock)
     async function unschedule(taskId: string) {
         await scheduleTaskTime(taskId, null)
+    }
+
+    // Handle Completion Toggle
+    async function handleToggle(taskId: string, currentStatus: boolean) {
+        await toggleTask(taskId, !currentStatus)
     }
 
     return (
@@ -66,7 +66,6 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
                     className="absolute top-0 left-0 right-0 w-full p-4"
                     style={{ height: `${HOURS.length * PIXELS_PER_HOUR}px` }}
                 >
-                    {/* Background Grid */}
                     {HOURS.map(hour => {
                         const timeLabel = `${hour < 10 ? '0' + hour : hour}:00`
                         return (
@@ -78,53 +77,75 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
                         )
                     })}
 
-                    {/* Current Time Line */}
                     {nowPosition > 0 && (
                         <div className="absolute left-16 right-0 border-t-2 border-red-500 z-10 pointer-events-none" style={{ top: `${nowPosition}px` }}>
                             <div className="absolute -left-2 -top-1.5 w-3 h-3 bg-red-500 rounded-full"></div>
                         </div>
                     )}
 
-                    {/* Scheduled Tasks */}
                     {scheduledTasks.map(task => {
                         const [h, m] = task.start_time.split(':').map(Number)
                         const startHour = 5
                         const topPosition = ((h - startHour) * PIXELS_PER_HOUR) + ((m / 60) * PIXELS_PER_HOUR) + 16
                         const height = Math.max((task.duration / 60) * PIXELS_PER_HOUR, 40)
+                        const isDone = task.is_completed
 
                         return (
                             <DraggableTask key={task.id} task={task}>
                                 <div
-                                    className="absolute left-20 right-4 rounded-xl bg-orange-100 dark:bg-orange-900/30 border-l-4 border-orange-500 pl-3 py-2 text-xs hover:z-30 cursor-grab shadow-sm transition-transform hover:scale-[1.01] group/card"
+                                    className={`absolute left-20 right-4 rounded-xl border-l-4 pl-3 py-2 text-xs hover:z-30 cursor-grab shadow-sm transition-all hover:scale-[1.01] group/card flex flex-col justify-between
+                          ${isDone
+                                            ? 'bg-stone-100 dark:bg-stone-800 border-stone-400 opacity-60 grayscale'
+                                            : 'bg-orange-100 dark:bg-orange-900/30 border-orange-500'
+                                        }
+                        `}
                                     style={{ top: `${topPosition}px`, height: `${height}px` }}
                                 >
-                                    <div className="font-bold text-orange-900 dark:text-orange-100 text-sm truncate pr-6">{task.title}</div>
-                                    <div className="text-orange-700 dark:text-orange-300/70 text-[10px] font-mono mt-0.5">
-                                        {task.start_time.slice(0, 5)} • {task.duration}m
+                                    <div>
+                                        <div className={`font-bold text-sm truncate pr-6 ${isDone ? 'text-stone-500 line-through' : 'text-orange-900 dark:text-orange-100'}`}>
+                                            {task.title}
+                                        </div>
+                                        <div className={`text-[10px] font-mono mt-0.5 ${isDone ? 'text-stone-400' : 'text-orange-700 dark:text-orange-300/70'}`}>
+                                            {task.start_time.slice(0, 5)} • {task.duration}m
+                                        </div>
                                     </div>
 
-                                    {/* 👇 UNSCHEDULE BUTTON (Visible on Hover) */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation() // Prevent drag start
-                                            unschedule(task.id)
-                                        }}
-                                        className="absolute top-1 right-1 p-1 text-orange-400 hover:text-red-500 hover:bg-white/50 rounded opacity-0 group-hover/card:opacity-100 transition-opacity"
-                                        title="Unschedule (Move back to dock)"
-                                    >
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                    </button>
+                                    {/* CONTROLS (Toggle & Unschedule) */}
+                                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                        {/* Checkbox */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation() // Stop Drag
+                                                handleToggle(task.id, isDone)
+                                            }}
+                                            className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isDone ? 'bg-green-500 border-green-500 text-white' : 'border-stone-400 hover:border-orange-500'}`}
+                                            title={isDone ? "Mark Incomplete" : "Mark Complete"}
+                                        >
+                                            {isDone && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+                                        </button>
+
+                                        {/* Unschedule (X) */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                unschedule(task.id)
+                                            }}
+                                            className="w-4 h-4 flex items-center justify-center text-stone-400 hover:text-red-500 hover:bg-white/50 rounded"
+                                            title="Unschedule"
+                                        >
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </DraggableTask>
                         )
                     })}
 
-                    {/* 👇 QUICK PICKER MENU (Popover) */}
+                    {/* QUICK PICKER MENU */}
                     {selectedSlot && (
                         <div
                             ref={menuRef}
                             className="absolute left-24 right-10 z-50 bg-white dark:bg-stone-800 rounded-xl shadow-2xl border border-stone-200 dark:border-stone-700 animate-in fade-in zoom-in-95 duration-100"
-                            // Calculate top position based on the selected slot time
                             style={{
                                 top: `${((parseInt(selectedSlot.split(':')[0]) - 5) * PIXELS_PER_HOUR) + 20}px`
                             }}
@@ -183,6 +204,7 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
     )
 }
 
+// ... TimeSlot and DockDropZone helper components remain the same
 function TimeSlot({ time, onClick }: { time: string, onClick: () => void }) {
     const { setNodeRef, isOver } = useDroppable({
         id: `slot-${time}`,
@@ -192,20 +214,15 @@ function TimeSlot({ time, onClick }: { time: string, onClick: () => void }) {
     return (
         <div
             ref={setNodeRef}
-            onClick={onClick} // 👈 Click to open menu
+            onClick={onClick}
             className="flex group relative cursor-pointer"
             style={{ height: `${PIXELS_PER_HOUR}px` }}
         >
-            {/* Time Label */}
             <div className="w-16 text-right pr-4 text-xs font-mono font-bold text-stone-400 -mt-2.5 select-none pointer-events-none">
                 {time}
             </div>
-            {/* Grid Line */}
             <div className={`flex-1 border-t border-stone-200 dark:border-stone-800 transition-colors ${isOver ? 'bg-orange-50 dark:bg-orange-900/20' : 'group-hover:bg-stone-50 dark:group-hover:bg-white/5'}`}>
-                {/* 30min dashed line */}
                 <div className="h-[50%] border-b border-stone-100 dark:border-stone-800/30 border-dashed pointer-events-none"></div>
-
-                {/* Hover Hint */}
                 <div className="hidden group-hover:flex h-full items-center justify-center opacity-30">
                     <span className="text-[10px] uppercase font-bold text-stone-400">+ Schedule Here</span>
                 </div>
