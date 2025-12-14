@@ -9,9 +9,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 async function getUser() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (!user) redirect('/login') // Protect the action
-  
+
   return { supabase, user }
 }
 
@@ -72,15 +72,15 @@ export async function addTask(formData: FormData) {
   revalidatePath('/', 'layout')
 }
 
-export async function toggleTask(taskId: string, currentStatus: boolean) {
+export async function toggleTask(taskId: string, isCompleted: boolean) {
   const { supabase, user } = await getUser()
-  
+
   await supabase
     .from('tasks')
-    .update({ is_completed: !currentStatus })
+    .update({ is_completed: isCompleted }) // 👈 Save the exact value sent from UI
     .eq('id', taskId)
-    .eq('user_id', user.id) // ✅ Ensure user can only toggle their own tasks
-  
+    .eq('user_id', user.id)
+
   revalidatePath('/')
 }
 
@@ -158,7 +158,7 @@ export async function updateTask(formData: FormData) {
   const { supabase, user } = await getUser()
   const taskId = formData.get('taskId') as string
   const newTitle = formData.get('title') as string
-  
+
   if (!taskId || !newTitle) return
 
   await supabase
@@ -259,7 +259,7 @@ export async function scheduleTaskTime(taskId: string, startTime: string | null,
 
   await supabase
     .from('tasks')
-    .update({ 
+    .update({
       start_time: startTime, // Pass null to remove from timeline (back to dock)
       duration: duration
     })
@@ -305,24 +305,24 @@ export async function getWeeklyReviewData(startDate: string, endDate: string) {
 
 export async function migrateUncompletedTasks(taskIds: string[], action: 'move-next-week' | 'move-backlog' | 'delete', nextMondayDate?: string) {
   const supabase = await createClient()
-  
+
   if (action === 'delete') {
     await supabase.from('tasks').delete().in('id', taskIds)
-  } 
+  }
   else if (action === 'move-backlog') {
     await supabase.from('tasks').update({ due_date: null, start_time: null }).in('id', taskIds)
   }
   else if (action === 'move-next-week' && nextMondayDate) {
     await supabase.from('tasks').update({ due_date: nextMondayDate, start_time: null }).in('id', taskIds)
   }
-  
+
   revalidatePath('/')
 }
 
 export async function saveWeeklyReflection(weekStart: string, completed: number, total: number, text: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   await supabase.from('reflections').insert({
     user_id: user?.id,
     week_start_date: weekStart,
