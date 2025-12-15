@@ -6,43 +6,37 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
 
 export async function generateWeeklyInsight(reportData: any) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" })
+    // 1. Use the Flash model (Lowest token cost, fastest response)
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
+    // 2. Pre-calculate summaries to save tokens
+    // Instead of sending 30 days of raw JSON, we send 1 sentence.
+    const topGoal = reportData.goalBreakdown[0]?.name || "General Tasks"
+    const busyDay = reportData.activityByDay.sort((a: any, b: any) => b.total - a.total)[0]?.day || "Monday"
+
+    // 3. Ultra-Compact Prompt
     const prompt = `
-      Act as an elite "Chief of Staff" for a high-performance Architect. 
-      Analyze this weekly productivity data:
-      
-      - **Score:** ${reportData.score}/100
-      - **Focus Hours:** ${reportData.focusHours}h (Deep Work)
-      - **Peak Energy Time:** ${reportData.peakTime} (When they complete the most tasks)
-      - **Planning Accuracy:** ${reportData.planningAccuracy} (Ratio of Actual vs Planned time)
-      - **Biggest Win:** "${reportData.biggestWin?.title || 'None'}"
-      - **Goal Distribution:** ${JSON.stringify(reportData.goalBreakdown.map((g: any) => ({ name: g.name, percent: Math.round(g.completed / g.total * 100) })))}
-      
-      Generate a strategic review in strict **JSON format** with exactly these 3 fields:
-      
-      1. "executive_summary": A 2-sentence high-level summary of the week's performance. Use a professional, encouraging but direct tone.
-      2. "psych_analysis": Analyze their behavior. Specifically mention their Peak Energy Time and Planning Accuracy. (e.g., "You are a Morning Lark but consistently underestimate task complexity.")
-      3. "tactical_protocol": An array of 3 specific, short actionable bullet points for next week based on the data.
+      Role: Elite Productivity Coach.
+      User Stats:
+      - Score: ${reportData.score}/100
+      - Focus: ${reportData.focusHours}h
+      - Busiest Day: ${busyDay}
+      - Top Goal: ${topGoal}
+      - Calibration: ${reportData.planningAccuracy}
 
-      Example JSON structure:
-      {
-        "executive_summary": "Strong momentum in the first half...",
-        "psych_analysis": "Your data suggests...",
-        "tactical_protocol": ["Schedule coding blocks before 11am", "Add 15m buffer to meetings", "Delegate low-priority admin"]
-      }
+      Task: Return valid JSON with 3 keys.
+      1. "summary": 1 punchy sentence summarizing performance.
+      2. "insight": 1 sentence connecting their Busiest Day to their Planning Accuracy.
+      3. "protocol": Array of 2 short, direct commands for next week.
       
-      Return ONLY raw JSON. No markdown formatting.
+      No markdown.
     `
 
     const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text()
+    const text = result.response.text()
 
-    // Clean potential markdown
-    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim()
-
-    return JSON.parse(cleanedText)
+    // Clean and Parse
+    return JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim())
 
   } catch (error) {
     console.error("AI Error", error)

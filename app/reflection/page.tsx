@@ -1,9 +1,12 @@
 import { getProductivityReport } from '@/utils/analytics'
+import { getExistingReflection } from '@/actions/reflections'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { Suspense } from 'react'
 import AIReportCard from '@/components/features/reflection/AIReportCard'
 import VelocityChart from '@/components/features/reflection/VelocityChart'
+import StaticAnalysis from '@/components/features/reflection/StaticAnalysis'
+import ReflectionJournal from '@/components/features/reflection/ReflectionJournal'
 
 export default async function ReflectionPage({
   searchParams,
@@ -16,16 +19,23 @@ export default async function ReflectionPage({
   // ✅ 1. Fetch Dynamic Data (Week or Month)
   const data = await getProductivityReport(range)
 
-  if (!data) return null // Or skeleton
+  if (!data) return null // Or skeleton component
 
-  const { score, total, completed, activityByDay, goalBreakdown, biggestWin, focusHours, peakTime, planningAccuracy } = data
+  // ✅ 2. Identify the "Key Date" for saving the journal
+  // If Weekly: Returns Monday's date (e.g., 2023-10-23)
+  // If Monthly: Returns 1st of Month (e.g., 2023-10-01)
+  const dateStr = data.activityByDay[0]?.fullDate
 
+  // ✅ 3. Fetch existing journal entry for this specific date
+  const userReflection = await getExistingReflection(dateStr)
+
+  const { score, total, completed, activityByDay, goalBreakdown, focusHours, peakTime, planningAccuracy } = data
   const isElite = score >= 80
   const isGood = score >= 50
   const scoreColor = isElite ? 'text-emerald-500' : isGood ? 'text-stone-700 dark:text-stone-200' : 'text-orange-500'
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1C1917] text-stone-800 dark:text-stone-200 font-sans p-6 md:p-8">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1C1917] text-stone-800 dark:text-stone-200 font-sans p-6 md:p-8 transition-colors duration-500">
 
       {/* HEADER & CONTROLS */}
       <header className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-end gap-4">
@@ -59,74 +69,87 @@ export default async function ReflectionPage({
         </div>
       </header>
 
-      {/* BENTO GRID LAYOUT */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-6">
+      {/* 🚀 THE COMMAND CENTER GRID */}
+      {/* We use a 12-column grid to split Data (Left) and Journal (Right) */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6">
 
-        {/* 1. AI BRIEFING (Spans 4 cols, dominant but concise) */}
-        <div className="md:col-span-4 lg:col-span-4 row-span-2">
-          <AIReportCard data={data} />
-        </div>
+        {/* ============================================== */}
+        {/* LEFT COLUMN: DATA & STRATEGY (8 Columns)       */}
+        {/* ============================================== */}
+        <div className="md:col-span-8 space-y-6">
 
-        {/* 2. THE SCORE (Square) */}
-        <div className="md:col-span-2 lg:col-span-2 bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-6 flex flex-col justify-between shadow-sm">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400">Score</h3>
-            <div className={`text-6xl font-serif font-black mt-2 tracking-tighter ${scoreColor}`}>{score}</div>
+          {/* ROW 1: AI & STATIC INSIGHTS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Suspense fallback={<div className="h-full min-h-[250px] bg-stone-100 dark:bg-stone-800/50 rounded-2xl animate-pulse" />}>
+              <AIReportCard data={data} />
+            </Suspense>
+            <StaticAnalysis data={data} />
           </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-stone-500">
-              <span>Efficiency</span>
-              <span>{Math.round((completed / total) * 100)}%</span>
+
+          {/* ROW 2: VELOCITY CHART */}
+          <div className="md:col-span-4 lg:col-span-4 bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-6 shadow-sm">
+            <VelocityChart data={activityByDay} range={range} />
+          </div>
+
+          {/* ROW 3: DETAILED METRICS GRID */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            {/* 1. Score */}
+            <div className="bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-4 text-center shadow-sm flex flex-col justify-center">
+              <div className={`text-4xl font-black ${scoreColor}`}>{score}</div>
+              <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Prod. Score</div>
             </div>
-            <div className="h-1.5 w-full bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
-              <div className="h-full bg-stone-800 dark:bg-stone-400 rounded-full" style={{ width: `${score}%` }}></div>
+
+            {/* 2. Deep Work */}
+            <div className="bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-4 text-center shadow-sm flex flex-col justify-center">
+              <div className="text-4xl font-bold text-stone-800 dark:text-stone-100">{focusHours}h</div>
+              <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Deep Work</div>
+            </div>
+
+            {/* 3. Peak Energy */}
+            <div className="bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-4 text-center shadow-sm flex flex-col justify-center">
+              <div className="text-xl font-bold text-stone-800 dark:text-stone-100">{peakTime}</div>
+              <div className="text-[10px] uppercase font-bold text-stone-400 mt-2">Energy Peak</div>
+            </div>
+
+            {/* 4. Calibration */}
+            <div className="bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-4 text-center shadow-sm flex flex-col justify-center">
+              <div className={`text-xl font-bold ${planningAccuracy === 'Calibrated' ? 'text-green-500' : 'text-orange-500'}`}>{planningAccuracy}</div>
+              <div className="text-[10px] uppercase font-bold text-stone-400 mt-2">Calibration</div>
             </div>
           </div>
-        </div>
 
-        {/* 3. FOCUS METRICS (Split Column) */}
-        <div className="md:col-span-2 lg:col-span-2 grid grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-5 flex flex-col justify-center items-center text-center">
-            <div className="text-3xl font-serif font-bold text-stone-800 dark:text-stone-100">{focusHours}h</div>
-            <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Deep Work</div>
-          </div>
-          <div className="bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-5 flex flex-col justify-center items-center text-center">
-            <div className="text-3xl font-serif font-bold text-stone-800 dark:text-stone-100">{completed}</div>
-            <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Tasks Done</div>
-          </div>
-
-          {/* New Metrics: Peak Time & Accuracy */}
-          <div className="bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-5 flex flex-col justify-center items-center text-center">
-            <div className="text-lg font-bold text-stone-700 dark:text-stone-300">{peakTime}</div>
-            <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Peak Energy</div>
-          </div>
-          <div className="bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-5 flex flex-col justify-center items-center text-center">
-            <div className={`text-lg font-bold ${planningAccuracy === 'Calibrated' ? 'text-green-600' : 'text-orange-500'}`}>{planningAccuracy}</div>
-            <div className="text-[10px] uppercase font-bold text-stone-400 mt-1">Calibration</div>
-          </div>
-        </div>
-
-        {/* 4. VELOCITY CHART (Wide) */}
-        <div className="md:col-span-4 lg:col-span-4 bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-6 shadow-sm">
-          <VelocityChart data={activityByDay} range={range} />
-        </div>
-
-        {/* 5. GOAL BREAKDOWN (Tall) */}
-        <div className="md:col-span-2 lg:col-span-2 row-span-1 bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-6 shadow-sm">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-4">Focus Distribution</h3>
-          <div className="space-y-4">
-            {goalBreakdown.slice(0, 5).map(g => (
-              <div key={g.name}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="truncate pr-2 font-medium">{g.name}</span>
-                  <span className="text-stone-400">{g.completed}/{g.total}</span>
+          {/* ROW 4: GOAL BREAKDOWN (Optional, kept from your previous code) */}
+          <div className="bg-white dark:bg-[#262626] border border-stone-200 dark:border-stone-800 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-4">Focus Distribution</h3>
+            <div className="space-y-4">
+              {goalBreakdown.slice(0, 4).map(g => (
+                <div key={g.name}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="truncate pr-2 font-medium text-stone-700 dark:text-stone-300">{g.name}</span>
+                    <span className="text-stone-400">{g.completed}/{g.total}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-orange-500 rounded-full" style={{ width: `${(g.completed / g.total) * 100}%` }}></div>
+                  </div>
                 </div>
-                <div className="h-1.5 w-full bg-stone-100 dark:bg-stone-800 rounded-full">
-                  <div className="h-full bg-orange-500 rounded-full" style={{ width: `${(g.completed / g.total) * 100}%` }}></div>
-                </div>
-              </div>
-            ))}
-            {goalBreakdown.length === 0 && <div className="text-stone-400 text-xs italic">No goals tracked.</div>}
+              ))}
+              {goalBreakdown.length === 0 && <div className="text-stone-400 text-xs italic">No strategic goals tracked this period.</div>}
+            </div>
+          </div>
+
+        </div>
+
+        {/* ============================================== */}
+        {/* RIGHT COLUMN: INTERACTIVE JOURNAL (4 Columns)  */}
+        {/* ============================================== */}
+        <div className="md:col-span-4 h-full">
+          <div className="sticky top-6 h-[calc(100vh-6rem)]">
+            <ReflectionJournal
+              dateStr={dateStr}
+              initialData={userReflection}
+              viewMode={range as 'week' | 'month'}
+            />
           </div>
         </div>
 

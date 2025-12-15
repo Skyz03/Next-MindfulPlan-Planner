@@ -71,24 +71,67 @@ export async function saveWeeklyReflection(weekStart: string, completed: number,
     })
 }
 
-export async function saveReflection(formData: FormData) {
-    const { supabase, user } = await getUser() // ✅ REAL USER
+// export async function saveReflection(formData: FormData) {
+//     const { supabase, user } = await getUser() // ✅ REAL USER
 
-    const win = formData.get('win') as string
-    const challenge = formData.get('challenge') as string
-    const energy = formData.get('energy') as string
-    const completedCount = formData.get('completed_count') as string
-    const weekStart = formData.get('week_start') as string
+//     const win = formData.get('win') as string
+//     const challenge = formData.get('challenge') as string
+//     const energy = formData.get('energy') as string
+//     const completedCount = formData.get('completed_count') as string
+//     const weekStart = formData.get('week_start') as string
 
-    await supabase.from('reflections').insert({
-        user_id: user.id, // ✅ Using Real ID
-        biggest_win: win,
-        biggest_challenge: challenge,
-        energy_rating: parseInt(energy),
-        total_tasks_completed: parseInt(completedCount),
-        week_start_date: weekStart
-    })
+//     await supabase.from('reflections').insert({
+//         user_id: user.id, // ✅ Using Real ID
+//         biggest_win: win,
+//         biggest_challenge: challenge,
+//         energy_rating: parseInt(energy),
+//         total_tasks_completed: parseInt(completedCount),
+//         week_start_date: weekStart
+//     })
 
-    // Redirect to home or show a success message
-    revalidatePath('/')
+//     // Redirect to home or show a success message
+//     revalidatePath('/')
+// }
+
+
+export async function saveReflection(weekStart: string, formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const energy = parseInt(formData.get('energy') as string)
+    const notes = formData.get('notes') as string
+    const goal1 = formData.get('goal_1') as string
+    const goal2 = formData.get('goal_2') as string
+    const goal3 = formData.get('goal_3') as string
+
+    // Filter out empty goals
+    const nextWeekGoals = [goal1, goal2, goal3].filter(Boolean)
+
+    await supabase.from('reflections').upsert({
+        user_id: user.id,
+        week_start_date: weekStart,
+        energy_rating: energy,
+        reflection_text: notes,
+        next_week_goals: nextWeekGoals,
+        updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id, week_start_date' })
+
+    revalidatePath('/reflection')
+}
+
+// Fetch Existing Reflection
+export async function getExistingReflection(weekStart: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data } = await supabase
+        .from('reflections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('week_start_date', weekStart)
+        .single()
+
+    return data
 }
