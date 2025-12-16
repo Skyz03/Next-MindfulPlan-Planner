@@ -1,7 +1,9 @@
 import { login, signup } from '@/actions/auth'
-import { FormMessage } from './form-message' // Import the new component
+import { FormMessage } from './form-message'
+import { AuthSubmitButton } from '@/components/ui/AuthSubmitButton' // Import new button
 import Link from 'next/link'
-import { Suspense } from 'react' // Needed because FormMessage uses useSearchParams
+import { Suspense } from 'react'
+
 
 export default function LoginPage() {
   return (
@@ -29,6 +31,9 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {/* ✅ IMPORTANT: We wrap buttons in a form. 
+           Next.js handles the loading state automatically via the buttons.
+        */}
         <form className="space-y-6">
           <div>
             <label className="mb-2 block text-xs font-bold tracking-wider text-stone-500 uppercase dark:text-stone-400">
@@ -56,24 +61,29 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* 🔔 Message Area - Wrapped in Suspense */}
-          <Suspense fallback={null}>
+          {/* 🔔 Message Area */}
+          <Suspense fallback={<div className="h-10"></div>}>
             <FormMessage />
           </Suspense>
 
           <div className="flex gap-4 pt-4">
-            <button
+            {/* 🟢 LOGIN BUTTON */}
+            <AuthSubmitButton
               formAction={login}
+              pendingText="Logging in..."
               className="flex-1 rounded-xl bg-orange-500 py-3 font-bold text-white shadow-lg shadow-orange-500/30 transition-all hover:bg-orange-600 active:scale-95"
             >
               Log In
-            </button>
-            <button
+            </AuthSubmitButton>
+
+            {/* ⚪ SIGNUP BUTTON */}
+            <AuthSubmitButton
               formAction={signup}
+              pendingText="Signing up..."
               className="flex-1 rounded-xl border border-stone-300 bg-white py-3 font-bold text-stone-700 transition-all hover:bg-stone-100 active:scale-95 dark:border-stone-700 dark:bg-stone-800 dark:text-white dark:hover:bg-stone-700"
             >
               Sign Up
-            </button>
+            </AuthSubmitButton>
           </div>
         </form>
       </div>
