@@ -24,7 +24,7 @@ export function ErrorMessage({ error }: { error?: string }) {
   }
 
   return (
-    <div className="relative rounded-lg border border-red-500/50 bg-red-500/20 p-3 text-center text-sm text-red-200">
+    <div className="relative rounded-xl border border-red-700 bg-red-900/50 p-3 text-center text-sm text-red-200">
       <button
         onClick={() => {
           setShowError(false)
