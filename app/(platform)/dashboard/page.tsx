@@ -110,10 +110,8 @@ export default async function Dashboard({
       dateStr={null}
       className="flex h-full w-full flex-col border-r border-stone-200 bg-[#F5F5F4] font-sans transition-colors duration-500 dark:border-stone-800 dark:bg-[#18181b]"
     >
-
       {/* 1. HEADER & CONTROLS BLOCK (The Command Center) */}
       <div className="flex flex-col px-6 pt-8 pb-4 pl-8">
-
         {/* TOP ROW: TITLE & UTILITIES */}
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -187,7 +185,6 @@ export default async function Dashboard({
 
       {/* 3. SCROLLABLE AREA (Inbox, Goals, etc.) */}
       <div className="custom-scrollbar flex-1 overflow-y-auto px-4 pb-24">
-
         {/* INBOX SECTION */}
         <div className="mb-8 px-4">
           <div className="mb-3 flex items-center gap-2">
@@ -225,13 +222,10 @@ export default async function Dashboard({
                   </div>
 
                   {/* 3. Actions (Delete) - Smooth Fade In */}
-                  <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="ml-auto opacity-0 transition-opacity group-hover:opacity-100">
                     <form action={deleteTask}>
                       <input type="hidden" name="taskId" value={task.id} />
-                      <button
-                        className="text-stone-300 hover:text-red-500"
-                        title="Dismiss Thought"
-                      >
+                      <button className="text-stone-300 hover:text-red-500" title="Dismiss Thought">
                         <svg
                           width="12"
                           height="12"
@@ -256,8 +250,10 @@ export default async function Dashboard({
 
         {/* STRATEGIC GOALS HEADER */}
         {tree.length > 0 && (
-          <div className="px-4 mb-4 mt-8 flex items-center gap-2">
-            <span className="text-[11px] font-bold tracking-widest text-stone-400 uppercase">Strategic Goals</span>
+          <div className="mt-8 mb-4 flex items-center gap-2 px-4">
+            <span className="text-[11px] font-bold tracking-widest text-stone-400 uppercase">
+              Strategic Goals
+            </span>
             <div className="h-px flex-1 bg-stone-200 dark:bg-stone-800"></div>
           </div>
         )}
@@ -274,7 +270,17 @@ export default async function Dashboard({
         <div className="mt-8 px-4">
           <form action={addGoal} className="group relative">
             <div className="absolute top-1/2 left-3 -translate-y-1/2 text-stone-400 transition-colors group-focus-within:text-orange-500">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
             </div>
             <input
               name="title"
@@ -286,7 +292,7 @@ export default async function Dashboard({
       </div>
 
       {/* Bottom Gradient Fade */}
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#F5F5F4] to-transparent dark:from-[#18181b]"></div>
+      <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-12 bg-gradient-to-t from-[#F5F5F4] to-transparent dark:from-[#18181b]"></div>
     </DroppableDay>
   )
 
@@ -325,10 +331,11 @@ export default async function Dashboard({
                 {/* TODAY BUTTON (Contextual) */}
                 <Link
                   href={`/dashboard?date=${todayStr}&view=${viewMode}`}
-                  className={`flex h-7 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${normalizedDateStr === todayStr
-                    ? 'cursor-default bg-white text-stone-800 shadow-sm dark:bg-stone-700 dark:text-stone-100'
-                    : 'text-orange-500 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20'
-                    }`}
+                  className={`flex h-7 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                    normalizedDateStr === todayStr
+                      ? 'cursor-default bg-white text-stone-800 shadow-sm dark:bg-stone-700 dark:text-stone-100'
+                      : 'text-orange-500 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20'
+                  }`}
                 >
                   Today
                 </Link>
@@ -401,10 +408,11 @@ export default async function Dashboard({
                       <Link
                         href={`/dashboard?date=${dateStr}&view=focus`}
                         scroll={false}
-                        className={`block flex h-full flex-col items-center justify-center gap-1 rounded-xl border-2 transition-all ${isActive
-                          ? 'border-stone-800 bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900'
-                          : 'border-transparent bg-white text-stone-500 hover:border-orange-300 dark:bg-stone-800'
-                          } `}
+                        className={`block flex h-full flex-col items-center justify-center gap-1 rounded-xl border-2 transition-all ${
+                          isActive
+                            ? 'border-stone-800 bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900'
+                            : 'border-transparent bg-white text-stone-500 hover:border-orange-300 dark:bg-stone-800'
+                        } `}
                       >
                         <span className="text-[10px] font-bold uppercase">
                           {day.toLocaleDateString('en-US', { weekday: 'short' })}

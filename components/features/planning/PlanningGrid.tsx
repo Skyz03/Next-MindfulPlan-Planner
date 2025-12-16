@@ -16,13 +16,12 @@ export default function PlanningGrid({
   }
 
   return (
-    <div className="h-full w-full overflow-x-auto overflow-y-hidden custom-scrollbar bg-[#F5F5F4] dark:bg-[#121212]">
+    <div className="custom-scrollbar h-full w-full overflow-x-auto overflow-y-hidden bg-[#F5F5F4] dark:bg-[#121212]">
       {/* THE GRID LAYOUT 
          Added gap-6 for breathing room.
          Added min-w to ensure columns don't crush on small screens.
       */}
-      <div className="flex h-full min-w-max p-8 gap-6">
-
+      <div className="flex h-full min-w-max gap-6 p-8">
         {weekDays.map((day) => {
           const dateStr = formatDate(day)
           const isToday = formatDate(new Date()) === dateStr
@@ -38,35 +37,37 @@ export default function PlanningGrid({
             <DroppableDay
               key={dateStr}
               dateStr={dateStr}
-              className={`
-                group relative flex h-full w-80 flex-col rounded-3xl border transition-colors duration-300
-                ${isToday
-                  ? 'bg-white dark:bg-[#1C1917] border-stone-200 dark:border-stone-800 shadow-xl shadow-stone-200/50 dark:shadow-black/50'
-                  : 'bg-stone-100/50 dark:bg-[#18181b] border-transparent hover:border-stone-200 dark:hover:border-stone-800'
-                }
-              `}
+              className={`group relative flex h-full w-80 flex-col rounded-3xl border transition-colors duration-300 ${
+                isToday
+                  ? 'border-stone-200 bg-white shadow-xl shadow-stone-200/50 dark:border-stone-800 dark:bg-[#1C1917] dark:shadow-black/50'
+                  : 'border-transparent bg-stone-100/50 hover:border-stone-200 dark:bg-[#18181b] dark:hover:border-stone-800'
+              } `}
             >
               {/* DAY HEADER */}
               <div className="flex-none p-5 pb-2">
-                <div className="flex items-end justify-between mb-1">
-                  <span className={`text-sm font-bold uppercase tracking-widest ${isToday ? 'text-orange-500' : 'text-stone-400'}`}>
+                <div className="mb-1 flex items-end justify-between">
+                  <span
+                    className={`text-sm font-bold tracking-widest uppercase ${isToday ? 'text-orange-500' : 'text-stone-400'}`}
+                  >
                     {day.toLocaleDateString('en-US', { weekday: 'short' })}
                   </span>
                   {dayTasks.length > 0 && (
-                    <span className="text-[10px] font-mono text-stone-400 bg-stone-200 dark:bg-stone-800 px-1.5 py-0.5 rounded">
+                    <span className="rounded bg-stone-200 px-1.5 py-0.5 font-mono text-[10px] text-stone-400 dark:bg-stone-800">
                       {timeLabel}
                     </span>
                   )}
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className={`font-serif text-3xl font-bold ${isToday ? 'text-stone-900 dark:text-white' : 'text-stone-400 dark:text-stone-600'}`}>
+                  <span
+                    className={`font-serif text-3xl font-bold ${isToday ? 'text-stone-900 dark:text-white' : 'text-stone-400 dark:text-stone-600'}`}
+                  >
                     {day.getDate()}
                   </span>
                 </div>
               </div>
 
               {/* TASKS CONTAINER (Scrollable within the day) */}
-              <div className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar space-y-3">
+              <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto px-4 py-2">
                 {dayTasks.map((task) => (
                   <DraggableTask key={task.id} task={task}>
                     <TaskItem task={task} />
@@ -75,8 +76,8 @@ export default function PlanningGrid({
 
                 {/* Empty State / Drop Target Area */}
                 {dayTasks.length === 0 && (
-                  <div className="h-32 border-2 border-dashed border-stone-200 dark:border-stone-800 rounded-xl flex items-center justify-center">
-                    <span className="text-xs text-stone-400 font-medium">Drop plan here</span>
+                  <div className="flex h-32 items-center justify-center rounded-xl border-2 border-dashed border-stone-200 dark:border-stone-800">
+                    <span className="text-xs font-medium text-stone-400">Drop plan here</span>
                   </div>
                 )}
 

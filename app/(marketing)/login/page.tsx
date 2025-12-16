@@ -4,7 +4,6 @@ import { AuthSubmitButton } from '@/components/ui/AuthSubmitButton' // Import ne
 import Link from 'next/link'
 import { Suspense } from 'react'
 
-
 export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#FAFAF9] p-4 dark:bg-[#0C0A09]">
@@ -13,22 +12,31 @@ export default function LoginPage() {
       <div className="absolute right-[-10%] bottom-[-10%] h-[500px] w-[500px] rounded-full bg-stone-500/10 blur-[120px]"></div>
 
       <div className="relative z-10 w-full max-w-md rounded-3xl border border-stone-300/50 bg-white/70 p-8 shadow-2xl backdrop-blur-md dark:border-stone-700/50 dark:bg-stone-900/90">
-
         {/* Branding */}
-        <Link href="/" className="mb-6 flex items-center justify-center gap-2 font-serif font-bold text-xl tracking-tight text-stone-900 dark:text-white">
-          <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-white shadow-md">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+        <Link
+          href="/"
+          className="mb-6 flex items-center justify-center gap-2 font-serif text-xl font-bold tracking-tight text-stone-900 dark:text-white"
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white shadow-md">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
           </div>
           Architect Studio
         </Link>
 
-        <div className="mb-8 text-center pt-4">
-          <h1 className="mb-2 text-3xl font-serif font-bold text-stone-900 dark:text-white">
+        <div className="mb-8 pt-4 text-center">
+          <h1 className="mb-2 font-serif text-3xl font-bold text-stone-900 dark:text-white">
             Welcome Back
           </h1>
-          <p className="text-sm text-stone-500 dark:text-stone-400">
-            Sign in to the Studio.
-          </p>
+          <p className="text-sm text-stone-500 dark:text-stone-400">Sign in to the Studio.</p>
         </div>
 
         {/* ✅ IMPORTANT: We wrap buttons in a form. 

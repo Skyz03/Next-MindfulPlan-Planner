@@ -55,7 +55,9 @@ export async function signup(formData: FormData) {
   // 3. Handle Success State
   // Case A: Email confirmation is required (Session is null)
   if (data?.user && !data.session) {
-    return redirect('/login?success=Signup successful! Please check your email to confirm your account, then log in with your credentials.')
+    return redirect(
+      '/login?success=Signup successful! Please check your email to confirm your account, then log in with your credentials.',
+    )
   }
 
   // Case B: Auto-confirm is enabled (Session exists)

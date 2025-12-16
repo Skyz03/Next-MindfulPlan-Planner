@@ -25,11 +25,11 @@ export async function proxy(request: NextRequest) {
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, options),
           )
         },
       },
-    }
+    },
   )
 
   // 3. Check the User
@@ -40,7 +40,7 @@ export async function proxy(request: NextRequest) {
 
   // 4. Define Paths
   const path = request.nextUrl.pathname
-  const isDashboard = path.startsWith('/dashboard');
+  const isDashboard = path.startsWith('/dashboard')
   const isReflection = path.startsWith('/reflection')
   const isAuthPage = path === '/login' || path === '/auth'
   const isRoot = path === '/'
@@ -52,7 +52,7 @@ export async function proxy(request: NextRequest) {
   if ((isDashboard || isReflection) && !user) {
     const loginUrl = new URL('/login', request.url)
     // Optional: Add ?next=... param to redirect back after login
-    // loginUrl.searchParams.set('next', path) 
+    // loginUrl.searchParams.set('next', path)
     return NextResponse.redirect(loginUrl)
   }
 
