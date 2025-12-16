@@ -56,40 +56,54 @@ export default async function Dashboard({
   } = await supabase.auth.getUser()
   if (!user) return null
 
-  // 2. FETCH DATA
-  const [weekTasksResponse, weeklyHabitsResponse, goalsResponse, inboxResponse] = await Promise.all(
-    [
-      supabase
-        .from('tasks')
-        .select('*, goals(title)')
-        .eq('user_id', user.id)
-        .gte('due_date', startOfWeek)
-        .lte('due_date', endOfWeek)
-        .order('is_completed', { ascending: true })
-        .order('created_at', { ascending: false }),
+  // 2. FETCH DATA (Added profiles to the Promise.all array)
+  const [
+    weekTasksResponse,
+    weeklyHabitsResponse,
+    goalsResponse,
+    inboxResponse,
+    profileResponse
+  ] = await Promise.all([
+    supabase
+      .from('tasks')
+      .select('*, goals(title)')
+      .eq('user_id', user.id)
+      .gte('due_date', startOfWeek)
+      .lte('due_date', endOfWeek)
+      .order('is_completed', { ascending: true })
+      .order('created_at', { ascending: false }),
 
-      supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', user.id)
-        .is('due_date', null)
-        .eq('is_completed', false)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('goals')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false }),
-      // Inbox: Tasks with no date AND no goal (rapid capture items)
-      supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', user.id)
-        .is('due_date', null)
-        .is('goal_id', null)
-        .eq('is_completed', false)
-        .order('created_at', { ascending: false }),
-    ],
+    supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .is('due_date', null)
+      .eq('is_completed', false)
+      .order('created_at', { ascending: false }),
+
+    supabase
+      .from('goals')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+
+    // Inbox: Tasks with no date AND no goal (rapid capture items)
+    supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .is('due_date', null)
+      .is('goal_id', null)
+      .eq('is_completed', false)
+      .order('created_at', { ascending: false }),
+
+    // 👈 2. Add the Profile Fetch Query
+    supabase
+      .from('profiles')
+      .select('has_onboarded')
+      .eq('id', user.id)
+      .single(),
+  ],
   )
 
   const allWeekTasks = weekTasksResponse.data || []
@@ -97,6 +111,8 @@ export default async function Dashboard({
     weeklyHabitsResponse && 'data' in weeklyHabitsResponse ? (weeklyHabitsResponse.data ?? []) : []
   const goals = goalsResponse && 'data' in goalsResponse ? (goalsResponse.data ?? []) : []
   const inboxTasks = inboxResponse && 'data' in inboxResponse ? (inboxResponse.data ?? []) : []
+
+  const hasOnboarded = profileResponse.data?.has_onboarded ?? false
 
   const tree = goals.map((goal: any) => ({
     ...goal,
@@ -301,7 +317,7 @@ export default async function Dashboard({
 
   return (
     <PlannerBoard>
-      <OnboardingTour hasSeenTour={false} />
+      <OnboardingTour hasSeenTour={hasOnboarded} />
       <DashboardShell sidebar={sidebarContent} viewMode={viewMode} >
         {/* HEADER: COMMAND CENTER */}
         <div className="relative z-40 flex h-16 items-center justify-between border-b border-stone-200 bg-[#FAFAF9] px-8 pl-16 transition-colors duration-500 dark:border-stone-800 dark:bg-[#1C1917]">

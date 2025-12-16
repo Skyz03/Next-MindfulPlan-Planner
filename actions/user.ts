@@ -9,10 +9,14 @@ export async function completeOnboarding() {
 
     if (!user) return
 
-    await supabase
+    const { error } = await supabase
         .from('profiles')
         .update({ has_onboarded: true })
         .eq('id', user.id)
+
+    if (error) {
+        console.error('Error updating onboarding status:', error)
+    }
 
     revalidatePath('/dashboard')
 }
