@@ -125,6 +125,9 @@ export default function SidebarGoal({ goal }: { goal: any }) {
               </select>
               <input type="number" name="duration" defaultValue={60} hidden />
             </div>
+
+            {/* Hidden submit button so Enter reliably submits on all browsers */}
+            <button type="submit" className="hidden" />
           </form>
         </div>
       )}
