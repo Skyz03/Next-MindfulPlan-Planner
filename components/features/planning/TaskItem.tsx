@@ -1,8 +1,9 @@
 'use client'
 
-import { Clock, Target, MoreHorizontal, CheckCircle2, Circle } from 'lucide-react'
+import { Target, CheckCircle2, Circle } from 'lucide-react'
 import EditableText from '@/components/ui/EditableText'
-import { toggleTask, deleteTask } from '@/actions/task'
+import { toggleTask, deleteTask, updateTaskDuration } from '@/actions/task'
+import DurationInput from '@/components/ui/DurationInput'
 
 export default function TaskItem({ task }: { task: any }) {
   // Determine Priority Color
@@ -17,15 +18,18 @@ export default function TaskItem({ task }: { task: any }) {
     <div className="group relative mb-3 w-full select-none">
       {/* THE CARD CONTAINER */}
       <div className="relative overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-300/50 hover:shadow-lg dark:border-stone-800 dark:bg-[#262626] dark:hover:border-orange-500/30">
+
         {/* Priority Strip (Left Side) */}
         <div
           className={`absolute top-0 bottom-0 left-0 w-1 ${priorityColor} transition-all group-hover:w-1.5`}
         ></div>
 
         <div className="p-3 pl-4">
+
           {/* HEADER: Checkbox & Title */}
           <div className="mb-2 flex items-start gap-3">
             <form
+              // Using your custom wrapper to handle the boolean toggle logic
               action={async (formData) => {
                 const taskId = formData.get('taskId')
                 if (typeof taskId === 'string') {
@@ -52,15 +56,14 @@ export default function TaskItem({ task }: { task: any }) {
                 id={task.id}
                 initialText={task.title}
                 type="task"
-                className={`block text-sm leading-snug font-medium transition-all ${
-                  task.is_completed
+                className={`block text-sm leading-snug font-medium transition-all ${task.is_completed
                     ? 'text-stone-400 line-through decoration-stone-300'
                     : 'text-stone-700 group-hover:text-stone-900 dark:text-stone-200 dark:group-hover:text-white'
-                }`}
+                  }`}
               />
             </div>
 
-            {/* Hidden Actions (Reveal on Hover) */}
+            {/* Hidden Actions (Delete - Reveal on Hover) */}
             <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100">
               <form action={deleteTask}>
                 <input type="hidden" name="taskId" value={task.id} />
@@ -83,6 +86,7 @@ export default function TaskItem({ task }: { task: any }) {
 
           {/* FOOTER: Metadata Pills */}
           <div className="flex flex-wrap items-center gap-2">
+
             {/* 1. Goal Pill (If linked) */}
             {task.goals?.title && (
               <div className="flex max-w-[120px] items-center gap-1 rounded-md border border-stone-200 bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400">
@@ -91,13 +95,12 @@ export default function TaskItem({ task }: { task: any }) {
               </div>
             )}
 
-            {/* 2. Duration Pill */}
-            {task.duration && task.duration > 0 && (
-              <div className="flex items-center gap-1 rounded-md border border-stone-100 bg-stone-50 px-2 py-0.5 text-[10px] text-stone-400 dark:border-stone-800 dark:bg-stone-800/50">
-                <Clock className="h-3 w-3" />
-                <span>{task.duration}m</span>
-              </div>
-            )}
+            {/* 2. ✅ INTERACTIVE DURATION PICKER */}
+            <DurationInput
+              defaultMinutes={task.duration || 0}
+              onChange={(newDuration) => updateTaskDuration(task.id, newDuration)}
+            />
+
           </div>
         </div>
 
