@@ -18,18 +18,15 @@ export default function TaskItem({ task }: { task: any }) {
     <div className="group relative mb-3 w-full select-none">
       {/* THE CARD CONTAINER */}
       <div className="relative overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-300/50 hover:shadow-lg dark:border-stone-800 dark:bg-[#262626] dark:hover:border-orange-500/30">
-
         {/* Priority Strip (Left Side) */}
         <div
           className={`absolute top-0 bottom-0 left-0 w-1 ${priorityColor} transition-all group-hover:w-1.5`}
         ></div>
 
         <div className="p-3 pl-4">
-
           {/* HEADER: Checkbox & Title */}
           <div className="mb-2 flex items-start gap-3">
             <form
-              // Using your custom wrapper to handle the boolean toggle logic
               action={async (formData) => {
                 const taskId = formData.get('taskId')
                 if (typeof taskId === 'string') {
@@ -39,8 +36,9 @@ export default function TaskItem({ task }: { task: any }) {
               className="mt-0.5"
             >
               <input type="hidden" name="taskId" value={task.id} />
+              {/* ✅ RESPONSIVE: Added p-1 -m-1 to increase touch target size without changing layout */}
               <button
-                className="text-stone-300 transition-colors hover:text-orange-500"
+                className="-m-1 p-1 text-stone-300 transition-colors hover:text-orange-500"
                 title="Complete Task"
               >
                 {task.is_completed ? (
@@ -56,18 +54,22 @@ export default function TaskItem({ task }: { task: any }) {
                 id={task.id}
                 initialText={task.title}
                 type="task"
-                className={`block text-sm leading-snug font-medium transition-all ${task.is_completed
+                className={`block text-sm leading-snug font-medium transition-all ${
+                  task.is_completed
                     ? 'text-stone-400 line-through decoration-stone-300'
                     : 'text-stone-700 group-hover:text-stone-900 dark:text-stone-200 dark:group-hover:text-white'
-                  }`}
+                }`}
               />
             </div>
 
-            {/* Hidden Actions (Delete - Reveal on Hover) */}
-            <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100">
+            {/* ✅ RESPONSIVE: Delete Button Visibility 
+                - Mobile: opacity-100 (Always visible because no hover)
+                - Desktop: md:opacity-0 (Hidden until hover)
+            */}
+            <div className="absolute top-2 right-2 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
               <form action={deleteTask}>
                 <input type="hidden" name="taskId" value={task.id} />
-                <button className="rounded-md p-1 text-stone-400 transition-colors hover:bg-stone-100 hover:text-red-500 dark:hover:bg-stone-800">
+                <button className="rounded-md p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-red-500 md:p-1 dark:hover:bg-stone-800">
                   <svg
                     width="14"
                     height="14"
@@ -86,7 +88,6 @@ export default function TaskItem({ task }: { task: any }) {
 
           {/* FOOTER: Metadata Pills */}
           <div className="flex flex-wrap items-center gap-2">
-
             {/* 1. Goal Pill (If linked) */}
             {task.goals?.title && (
               <div className="flex max-w-[120px] items-center gap-1 rounded-md border border-stone-200 bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400">
@@ -95,16 +96,15 @@ export default function TaskItem({ task }: { task: any }) {
               </div>
             )}
 
-            {/* 2. ✅ INTERACTIVE DURATION PICKER */}
+            {/* 2. Interactive Duration */}
             <DurationInput
               defaultMinutes={task.duration || 0}
               onChange={(newDuration) => updateTaskDuration(task.id, newDuration)}
             />
-
           </div>
         </div>
 
-        {/* Bottom "Thickness" (Simulates 3D Card) */}
+        {/* Bottom "Thickness" */}
         <div className="h-1 w-full border-t border-stone-200 bg-stone-100 dark:border-stone-700 dark:bg-stone-800"></div>
       </div>
     </div>

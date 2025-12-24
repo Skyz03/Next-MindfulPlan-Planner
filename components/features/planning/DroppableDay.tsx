@@ -20,7 +20,8 @@ export default function DroppableDay({
   return (
     <div
       ref={setNodeRef}
-      className={`${className} transition-colors duration-300 ${
+      // ✅ RESPONSIVE: Added touch-manipulation
+      className={`${className} touch-manipulation transition-colors duration-300 ${
         isOver
           ? 'bg-orange-100 ring-2 ring-orange-400 dark:bg-orange-900/30 dark:ring-orange-500'
           : ''

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import InboxCapture from '../features/inbox/InboxCapture'
+import MobileSidebar from './MobileSidebar' // Ensure this exists
 
 export default function DashboardShell({
   sidebar,
@@ -25,11 +26,18 @@ export default function DashboardShell({
   }, [viewMode])
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#FAFAF9] dark:bg-[#1C1917]">
+    // ✅ CHANGED: flex-col for mobile, md:flex-row for desktop
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-[#FAFAF9] md:flex-row dark:bg-[#1C1917]">
       <InboxCapture />
-      {/* 1. SIDEBAR CONTAINER (The "Snap" Logic) */}
+
+      {/* --- MOBILE SIDEBAR TRIGGER (Hidden on Desktop) --- */}
+      <div className="absolute top-4 left-4 z-50 md:hidden">
+        <MobileSidebar>{sidebar}</MobileSidebar>
+      </div>
+
+      {/* --- DESKTOP SIDEBAR CONTAINER (Hidden on Mobile) --- */}
       <div
-        className={`relative h-full flex-none border-r border-stone-200 bg-[#F5F5F4] transition-all duration-300 ease-in-out dark:border-stone-800 dark:bg-[#292524] ${
+        className={`relative hidden h-full flex-none border-r border-stone-200 bg-[#F5F5F4] transition-all duration-300 ease-in-out md:flex dark:border-stone-800 dark:bg-[#292524] ${
           // If Plan Mode OR Sidebar Open -> Width 80
           // Else -> Width 0 (Hidden)
           viewMode === 'plan' || isSidebarOpen
@@ -63,9 +71,9 @@ export default function DashboardShell({
         </div>
       </div>
 
-      {/* 2. TOGGLE BUTTON (Visible only when Sidebar is CLOSED in Focus Mode) */}
+      {/* --- DESKTOP TOGGLE BUTTON (Visible only when Sidebar is CLOSED in Focus Mode) --- */}
       {viewMode === 'focus' && !isSidebarOpen && (
-        <div className="absolute top-4 left-4 z-40">
+        <div className="absolute top-4 left-4 z-40 hidden md:block">
           <button
             onClick={() => setIsSidebarOpen(true)}
             className="rounded-lg border border-stone-200 bg-white p-2 text-stone-500 shadow-sm transition-colors hover:text-orange-500 dark:border-stone-700 dark:bg-stone-800"
@@ -89,8 +97,8 @@ export default function DashboardShell({
         </div>
       )}
 
-      {/* 3. MAIN CONTENT (Resizes automatically via Flexbox) */}
-      <div className="z-10 flex min-w-0 flex-1 flex-col transition-all duration-300">
+      {/* --- MAIN CONTENT (Resizes automatically via Flexbox) --- */}
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col transition-all duration-300">
         {children}
       </div>
     </div>

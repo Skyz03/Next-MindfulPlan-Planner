@@ -22,16 +22,17 @@ export default function AIGenerateButton({
     <button
       onClick={handleGenerate}
       disabled={loading}
-      className={`group/ai relative rounded-md p-1 transition-all ${loading ? 'cursor-wait' : 'hover:bg-indigo-50 dark:hover:bg-indigo-900/30'}`}
+      // ✅ RESPONSIVE: Increased padding (p-1.5 mobile, p-1 desktop) for better touch target
+      className={`group/ai relative rounded-md p-1.5 transition-all md:p-1 ${loading ? 'cursor-wait' : 'hover:bg-indigo-50 dark:hover:bg-indigo-900/30'}`}
       title="Ask AI to brainstorm steps"
     >
       {loading ? (
         // Loading Spinner
-        <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent"></div>
+        <div className="h-3 w-3 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent md:h-3 md:w-3"></div>
       ) : (
         // Sparkle Icon
         <svg
-          className="h-3 w-3 text-stone-300 transition-colors group-hover/ai:text-indigo-500"
+          className="h-3.5 w-3.5 text-stone-300 transition-colors group-hover/ai:text-indigo-500 md:h-3 md:w-3"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
