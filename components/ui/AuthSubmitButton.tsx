@@ -11,7 +11,6 @@ export function AuthSubmitButton({ children, pendingText = 'Submitting...', ...p
   const { pending } = useFormStatus()
   const [isClicked, setIsClicked] = useState(false)
 
-  // Reset the clicked state when the form submission finishes
   useEffect(() => {
     if (!pending) {
       setIsClicked(false)
@@ -21,16 +20,17 @@ export function AuthSubmitButton({ children, pendingText = 'Submitting...', ...p
   return (
     <button
       {...props}
-      // 1. Remove manual 'name' or 'value' props to prevent Next.js conflicts
-      // 2. Track click locally
       onClick={(e) => {
         setIsClicked(true)
         if (props.onClick) props.onClick(e)
       }}
       disabled={pending}
-      className={`relative flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-70 ${props.className}`}
+      // ✅ RESPONSIVE:
+      // 1. w-full: Spans full width on mobile forms
+      // 2. py-3 md:py-2: Taller touch target on mobile
+      // 3. text-base md:text-sm: Larger text on mobile for readability
+      className={`relative flex w-full items-center justify-center rounded-lg py-3 text-base font-medium transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 md:py-2 md:text-sm ${props.className}`}
     >
-      {/* Only show spinner if the form is pending AND this specific button was clicked */}
       {pending && isClicked ? (
         <>
           <svg

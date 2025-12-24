@@ -198,11 +198,8 @@ export async function toggleTimer(taskId: string) {
 
 export async function updateTaskDuration(taskId: string, duration: number) {
   const supabase = await createClient()
-  
-  const { error } = await supabase
-    .from('tasks')
-    .update({ duration })
-    .eq('id', taskId)
+
+  const { error } = await supabase.from('tasks').update({ duration }).eq('id', taskId)
 
   if (error) {
     console.error('Error updating task duration:', error)

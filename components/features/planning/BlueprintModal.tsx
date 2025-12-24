@@ -1,251 +1,325 @@
 'use client'
 
 import { useState } from 'react'
-import { Copy, Plus, Trash2, X, Calendar, Clock, LayoutTemplate, Repeat, Battery, BatteryMedium } from 'lucide-react'
+import {
+  Copy,
+  Plus,
+  Trash2,
+  X,
+  Calendar,
+  Clock,
+  LayoutTemplate,
+  Repeat,
+  Battery,
+  BatteryMedium,
+} from 'lucide-react'
 import { addBlueprintItem, deleteBlueprintItem, applyBlueprintToWeek } from '@/actions/blueprint'
 import { useFormStatus } from 'react-dom'
 
-export default function BlueprintModal({ items, currentDateStr }: { items: any[], currentDateStr: string }) {
-   const [isOpen, setIsOpen] = useState(false)
+export default function BlueprintModal({
+  items,
+  currentDateStr,
+}: {
+  items: any[]
+  currentDateStr: string
+}) {
+  const [isOpen, setIsOpen] = useState(false)
 
-   // --- 1. CALCULATE WEEKLY LOAD ---
-   // We assume a standard "Productive Capacity" of 40 hours/week (2400 mins)
-   const WEEKLY_CAPACITY_HOURS = 40
-   const TOTAL_CAPACITY_MINS = WEEKLY_CAPACITY_HOURS * 60
+  // --- 1. CALCULATE WEEKLY LOAD ---
+  const WEEKLY_CAPACITY_HOURS = 40
+  const TOTAL_CAPACITY_MINS = WEEKLY_CAPACITY_HOURS * 60
 
-   const calculateWeeklyLoad = (blueprintItems: any[]) => {
-      return blueprintItems.reduce((acc, item) => {
-         const duration = item.duration || 0
-         const freq = item.day_of_week
+  const calculateWeeklyLoad = (blueprintItems: any[]) => {
+    return blueprintItems.reduce((acc, item) => {
+      const duration = item.duration || 0
+      const freq = item.day_of_week
+      let multiplier = 1
+      if (freq === 7)
+        multiplier = 7 // Everyday
+      else if (freq === 8)
+        multiplier = 5 // Weekdays
+      else if (freq === 9) multiplier = 2 // Weekends
+      return acc + duration * multiplier
+    }, 0)
+  }
 
-         let multiplier = 1
-         if (freq === 7) multiplier = 7 // Everyday
-         else if (freq === 8) multiplier = 5 // Weekdays
-         else if (freq === 9) multiplier = 2 // Weekends
+  const committedMins = calculateWeeklyLoad(items)
+  const committedHours = Math.round((committedMins / 60) * 10) / 10
+  const percentageUsed = Math.min((committedMins / TOTAL_CAPACITY_MINS) * 100, 100)
+  const remainingHours = Math.max(WEEKLY_CAPACITY_HOURS - committedHours, 0).toFixed(1)
 
-         return acc + (duration * multiplier)
-      }, 0)
-   }
+  // --- HELPERS ---
+  const getDayLabel = (val: number | null) => {
+    if (val === null) return 'Inbox / Floating'
+    if (val === 7) return 'Every Single Day'
+    if (val === 8) return 'Weekdays (Mon-Fri)'
+    if (val === 9) return 'Weekends (Sat-Sun)'
+    return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][val]
+  }
 
-   const committedMins = calculateWeeklyLoad(items)
-   const committedHours = Math.round(committedMins / 60 * 10) / 10 // 1 decimal
-   const percentageUsed = Math.min((committedMins / TOTAL_CAPACITY_MINS) * 100, 100)
-   const remainingHours = Math.max(WEEKLY_CAPACITY_HOURS - committedHours, 0).toFixed(1)
+  const displayOrder = [7, 8, 9, 1, 2, 3, 4, 5, 6, 0, null]
 
-   // --- HELPERS ---
-   const getDayLabel = (val: number | null) => {
-      if (val === null) return 'Inbox / Floating'
-      if (val === 7) return 'Every Single Day'
-      if (val === 8) return 'Weekdays (Mon-Fri)'
-      if (val === 9) return 'Weekends (Sat-Sun)'
-      return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][val]
-   }
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        // ✅ RESPONSIVE: Increased touch target padding on mobile
+        className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-stone-500 transition-colors hover:bg-stone-200 md:py-1.5 dark:hover:bg-stone-800"
+      >
+        <LayoutTemplate className="h-4 w-4 md:h-3.5 md:w-3.5" />
+        Blueprint
+      </button>
+    )
+  }
 
-   const displayOrder = [7, 8, 9, 1, 2, 3, 4, 5, 6, 0, null]
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 p-0 backdrop-blur-sm md:p-4">
+      {/* ✅ RESPONSIVE: Full width/height on mobile (h-full w-full rounded-none), rounded on desktop */}
+      <div className="animate-in zoom-in-95 flex h-full w-full flex-col overflow-hidden border border-stone-200 bg-[#FAFAF9] shadow-2xl duration-200 md:h-auto md:max-h-[90vh] md:max-w-5xl md:rounded-3xl dark:border-stone-800 dark:bg-[#1C1917]">
+        {/* HEADER */}
+        <div className="flex-shrink-0 border-b border-stone-200 bg-white p-4 md:p-8 md:pb-6 dark:border-stone-800 dark:bg-[#262626]">
+          <div className="mb-4 flex items-start justify-between md:mb-6">
+            <div className="space-y-1">
+              <h2 className="flex items-center gap-2 font-serif text-xl font-bold text-stone-900 md:gap-3 md:text-3xl dark:text-white">
+                <LayoutTemplate className="h-6 w-6 text-orange-500 md:h-8 md:w-8" />
+                The Blueprint
+              </h2>
+              <p className="text-xs text-stone-500 md:text-base dark:text-stone-400">
+                Design your "Default Week."
+              </p>
+            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="rounded-full p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
 
-   if (!isOpen) {
-      return (
-         <button
-            onClick={() => setIsOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-stone-500 hover:bg-stone-200 dark:hover:bg-stone-800 rounded-lg transition-colors"
-         >
-            <LayoutTemplate className="w-3.5 h-3.5" />
-            Blueprint
-         </button>
-      )
-   }
-
-   return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4">
-         <div className="w-full max-w-5xl bg-[#FAFAF9] dark:bg-[#1C1917] rounded-3xl shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
-
-            {/* HEADER */}
-            <div className="p-8 pb-6 border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-[#262626]">
-               <div className="flex justify-between items-start mb-6">
-                  <div className="space-y-1">
-                     <h2 className="text-3xl font-serif font-bold text-stone-900 dark:text-white flex items-center gap-3">
-                        <LayoutTemplate className="w-8 h-8 text-orange-500" />
-                        The Weekly Blueprint
-                     </h2>
-                     <p className="text-base text-stone-500 dark:text-stone-400">
-                        Design your "Default Week." Smart templates that skip duplicates automatically.
-                     </p>
-                  </div>
-                  <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-600 transition-colors">
-                     <X className="w-6 h-6" />
-                  </button>
-               </div>
-
-               {/* --- ✅ NEW: TIME BUDGET BAR --- */}
-               <div className="bg-stone-50 dark:bg-stone-900 rounded-xl p-4 border border-stone-200 dark:border-stone-800">
-                  <div className="flex items-center justify-between text-sm font-medium mb-2">
-                     <div className="flex items-center gap-2 text-stone-600 dark:text-stone-300">
-                        <BatteryMedium className="w-4 h-4 text-orange-500" />
-                        <span><span className="font-bold text-stone-900 dark:text-white">{committedHours}h</span> committed to Routine</span>
-                     </div>
-                     <div className="text-stone-500 dark:text-stone-400">
-                        <span className="font-bold text-stone-900 dark:text-white">{remainingHours}h</span> remaining for Strategy
-                     </div>
-                  </div>
-
-                  {/* The Bar */}
-                  <div className="h-3 w-full bg-stone-200 dark:bg-stone-800 rounded-full overflow-hidden flex">
-                     {/* Routine Part */}
-                     <div
-                        className="h-full bg-orange-500 relative group"
-                        style={{ width: `${percentageUsed}%` }}
-                     >
-                        {/* Tooltip on hover */}
-                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block px-2 py-1 bg-black text-white text-[10px] rounded whitespace-nowrap">
-                           {Math.round(percentageUsed)}% of capacity
-                        </div>
-                     </div>
-                     {/* Free Space Part */}
-                     <div className="flex-1 bg-transparent"></div>
-                  </div>
-
-                  <div className="mt-1 flex justify-between text-[10px] text-stone-400 font-medium uppercase tracking-wider">
-                     <span>0h</span>
-                     <span>{WEEKLY_CAPACITY_HOURS}h Capacity</span>
-                  </div>
-               </div>
+          {/* TIME BUDGET BAR */}
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 md:p-4 dark:border-stone-800 dark:bg-stone-900">
+            <div className="mb-2 flex items-center justify-between text-xs font-medium md:text-sm">
+              <div className="flex items-center gap-2 text-stone-600 dark:text-stone-300">
+                <BatteryMedium className="h-3 w-3 text-orange-500 md:h-4 md:w-4" />
+                <span>
+                  <span className="font-bold text-stone-900 dark:text-white">
+                    {committedHours}h
+                  </span>{' '}
+                  Routine
+                </span>
+              </div>
+              <div className="text-stone-500 dark:text-stone-400">
+                <span className="font-bold text-stone-900 dark:text-white">{remainingHours}h</span>{' '}
+                Strategy
+              </div>
             </div>
 
-            {/* CONTENT AREA */}
-            <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+            {/* The Bar */}
+            <div className="flex h-2 w-full overflow-hidden rounded-full bg-stone-200 md:h-3 dark:bg-stone-800">
+              <div
+                className="group relative h-full bg-orange-500"
+                style={{ width: `${percentageUsed}%` }}
+              ></div>
+              <div className="flex-1 bg-transparent"></div>
+            </div>
+          </div>
+        </div>
 
-               {/* LEFT COLUMN: Editor */}
-               <div className="p-8 md:w-[350px] flex-shrink-0 bg-stone-50 dark:bg-[#202022] border-r border-stone-200 dark:border-stone-800 overflow-y-auto">
-                  {/* Form remains exactly the same as before */}
-                  <div className="mb-6">
-                     <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-1">New Template</h3>
-                     <p className="text-xs text-stone-500">Add a recurring ritual.</p>
+        {/* CONTENT AREA - SCROLLABLE */}
+        {/* ✅ RESPONSIVE: Flex-col on mobile (stack), Flex-row on desktop */}
+        <div className="flex flex-1 flex-col overflow-y-auto md:flex-row">
+          {/* LEFT COLUMN: Editor (Top on mobile) */}
+          <div className="flex-shrink-0 border-b border-stone-200 bg-stone-50 p-4 md:w-[350px] md:border-r md:border-b-0 md:p-8 dark:border-stone-800 dark:bg-[#202022]">
+            <div className="mb-4 flex items-center justify-between md:mb-6">
+              <h3 className="text-xs font-bold tracking-widest text-stone-400 uppercase">
+                New Template
+              </h3>
+            </div>
+
+            <form action={addBlueprintItem} className="space-y-4 md:space-y-5">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-stone-600 dark:text-stone-300">
+                  Task Title
+                </label>
+                <input
+                  name="title"
+                  placeholder="e.g. Morning Cardio"
+                  required
+                  className="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm shadow-sm transition-all outline-none focus:border-orange-500 md:py-3 dark:border-stone-700 dark:bg-stone-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 md:block md:space-y-5">
+                <div className="space-y-1">
+                  <label className="flex items-center gap-2 text-xs font-bold text-stone-600 dark:text-stone-300">
+                    <Repeat className="h-3 w-3" /> Freq
+                  </label>
+                  <div className="relative">
+                    <select
+                      name="day_of_week"
+                      className="w-full appearance-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm shadow-sm transition-all outline-none focus:border-orange-500 md:py-3 dark:border-stone-700 dark:bg-stone-900"
+                    >
+                      <optgroup label="Recurring">
+                        <option value="8">Weekdays (Mon-Fri)</option>
+                        <option value="7">Everyday (Mon-Sun)</option>
+                        <option value="9">Weekend (Sat-Sun)</option>
+                      </optgroup>
+                      <optgroup label="Specific Day">
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                        <option value="0">Sunday</option>
+                      </optgroup>
+                      <optgroup label="Unscheduled">
+                        <option value="">Inbox</option>
+                      </optgroup>
+                    </select>
+                    <div className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-stone-400">
+                      <svg
+                        width="10"
+                        height="6"
+                        viewBox="0 0 10 6"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M1 1L5 5L9 1" />
+                      </svg>
+                    </div>
                   </div>
+                </div>
 
-                  <form action={addBlueprintItem} className="space-y-5">
-                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-stone-600 dark:text-stone-300">Task Title</label>
-                        <input name="title" placeholder="e.g. Morning Cardio" required className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-orange-500 transition-all shadow-sm" />
-                     </div>
+                <div className="space-y-1">
+                  <label className="flex items-center gap-2 text-xs font-bold text-stone-600 dark:text-stone-300">
+                    <Clock className="h-3 w-3" /> Mins
+                  </label>
+                  <input
+                    type="number"
+                    name="duration"
+                    placeholder="60"
+                    defaultValue={60}
+                    className="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm shadow-sm transition-all outline-none focus:border-orange-500 md:py-3 dark:border-stone-700 dark:bg-stone-900"
+                  />
+                </div>
+              </div>
 
-                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-stone-600 dark:text-stone-300 flex items-center gap-2">
-                           <Repeat className="w-3 h-3" /> Frequency
-                        </label>
-                        <div className="relative">
-                           <select name="day_of_week" className="w-full appearance-none bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-orange-500 transition-all shadow-sm">
-                              <optgroup label="Recurring">
-                                 <option value="8">Weekdays (Mon-Fri)</option>
-                                 <option value="7">Everyday (Mon-Sun)</option>
-                                 <option value="9">Weekend (Sat-Sun)</option>
-                              </optgroup>
-                              <optgroup label="Specific Day">
-                                 <option value="1">Monday</option>
-                                 <option value="2">Tuesday</option>
-                                 <option value="3">Wednesday</option>
-                                 <option value="4">Thursday</option>
-                                 <option value="5">Friday</option>
-                                 <option value="6">Saturday</option>
-                                 <option value="0">Sunday</option>
-                              </optgroup>
-                              <optgroup label="Unscheduled">
-                                 <option value="">Inbox / Floating</option>
-                              </optgroup>
-                           </select>
-                           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400">
-                              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 1L5 5L9 1" /></svg>
-                           </div>
-                        </div>
-                     </div>
+              <div className="pt-2 md:pt-4">
+                <SubmitButton />
+              </div>
+            </form>
+          </div>
 
-                     <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-stone-600 dark:text-stone-300 flex items-center gap-2">
-                           <Clock className="w-3 h-3" /> Duration (Minutes)
-                        </label>
-                        <input type="number" name="duration" placeholder="60" defaultValue={60} className="w-full bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl px-4 py-3 text-sm outline-none focus:border-orange-500 transition-all shadow-sm" />
-                     </div>
+          {/* RIGHT COLUMN: Visual Blueprint (Bottom on mobile) */}
+          <div className="flex-1 bg-[#FAFAF9] p-4 md:p-8 dark:bg-[#1C1917]">
+            {items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center opacity-40 md:h-full">
+                <LayoutTemplate className="mb-4 h-12 w-12 text-stone-300 md:h-16 md:w-16" />
+                <p className="font-serif text-base font-bold text-stone-400 md:text-lg">
+                  Your blueprint is empty.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 pb-20 md:grid-cols-2 md:gap-8 md:pb-0">
+                {displayOrder.map((dayCode) => {
+                  const dayItems = items.filter((i) => i.day_of_week === dayCode)
+                  if (dayItems.length === 0) return null
 
-                     <div className="pt-4">
-                        <SubmitButton />
-                     </div>
-                  </form>
-               </div>
+                  const isRecurrent = [7, 8, 9].includes(dayCode as number)
 
-               {/* RIGHT COLUMN: Visual Blueprint */}
-               <div className="flex-1 p-8 overflow-y-auto custom-scrollbar bg-[#FAFAF9] dark:bg-[#1C1917]">
-                  {items.length === 0 ? (
-                     <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-                        <LayoutTemplate className="w-16 h-16 mb-4 text-stone-300" />
-                        <p className="text-lg font-serif font-bold text-stone-400">Your blueprint is empty.</p>
-                     </div>
-                  ) : (
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {displayOrder.map(dayCode => {
-                           const dayItems = items.filter(i => i.day_of_week === dayCode)
-                           if (dayItems.length === 0) return null
+                  return (
+                    <div key={String(dayCode)} className="break-inside-avoid">
+                      <div className="mb-2 flex items-center gap-3 border-b border-stone-200 pb-2 dark:border-stone-800">
+                        <span
+                          className={`text-xs font-bold tracking-widest uppercase ${isRecurrent ? 'text-purple-600 dark:text-purple-400' : 'text-orange-600 dark:text-orange-500'}`}
+                        >
+                          {getDayLabel(dayCode as number)}
+                        </span>
+                      </div>
 
-                           const isRecurrent = [7, 8, 9].includes(dayCode as number)
-
-                           return (
-                              <div key={String(dayCode)} className="break-inside-avoid">
-                                 <div className="flex items-center gap-3 mb-3 pb-2 border-b border-stone-200 dark:border-stone-800">
-                                    <span className={`text-xs font-bold uppercase tracking-widest ${isRecurrent ? 'text-purple-600 dark:text-purple-400' : 'text-orange-600 dark:text-orange-500'}`}>
-                                       {getDayLabel(dayCode as number)}
-                                    </span>
-                                 </div>
-
-                                 <div className="space-y-2">
-                                    {dayItems.map(item => (
-                                       <div key={item.id} className="group relative flex items-center justify-between bg-white dark:bg-[#262626] border border-stone-100 dark:border-stone-800 p-3 rounded-xl hover:border-orange-300 dark:hover:border-orange-700 hover:shadow-md transition-all duration-200">
-                                          <div>
-                                             <div className="text-sm font-semibold text-stone-800 dark:text-stone-200">{item.title}</div>
-                                             <div className="text-[10px] font-medium text-stone-400 flex items-center gap-1 mt-0.5">
-                                                <Clock className="w-3 h-3" /> {item.duration}m
-                                             </div>
-                                          </div>
-                                          <button
-                                             onClick={() => deleteBlueprintItem(item.id)}
-                                             className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-stone-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                                          >
-                                             <Trash2 className="w-4 h-4" />
-                                          </button>
-                                       </div>
-                                    ))}
-                                 </div>
+                      <div className="space-y-2">
+                        {dayItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="group relative flex items-center justify-between rounded-xl border border-stone-100 bg-white p-3 transition-all duration-200 hover:border-orange-300 hover:shadow-md dark:border-stone-800 dark:bg-[#262626] dark:hover:border-orange-700"
+                          >
+                            <div>
+                              <div className="text-sm font-semibold text-stone-800 dark:text-stone-200">
+                                {item.title}
                               </div>
-                           )
-                        })}
-                     </div>
-                  )}
-               </div>
-            </div>
+                              <div className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-stone-400">
+                                <Clock className="h-3 w-3" /> {item.duration}m
+                              </div>
+                            </div>
+                            {/* ✅ RESPONSIVE: Always show delete button on mobile (no hover state), show on hover for desktop */}
+                            <button
+                              onClick={() => deleteBlueprintItem(item.id)}
+                              className="absolute top-1/2 right-3 -translate-y-1/2 rounded-lg p-2 text-stone-300 transition-all hover:bg-red-50 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 dark:hover:bg-red-900/20"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
 
-            {/* Footer */}
-            <div className="p-6 bg-white dark:bg-[#202022] flex justify-between items-center border-t border-stone-200 dark:border-stone-800">
-               <div className="text-xs text-stone-400 font-medium">{items.length} templates defined</div>
-               <div className="flex gap-4">
-                  <button onClick={() => setIsOpen(false)} className="px-6 py-2.5 text-sm font-bold text-stone-500 hover:text-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-xl transition-colors">Cancel</button>
-                  <form action={async () => {
-                     await applyBlueprintToWeek(currentDateStr)
-                     setIsOpen(false)
-                  }}>
-                     <button type="submit" className="px-8 py-2.5 bg-stone-900 dark:bg-white text-white dark:text-black rounded-xl text-sm font-bold shadow-lg shadow-stone-900/10 hover:scale-105 hover:shadow-xl transition-all flex items-center gap-2">
-                        <Copy className="w-4 h-4" />
-                        Apply to Current Week
-                     </button>
-                  </form>
-               </div>
-            </div>
-         </div>
+        {/* Footer - Fixed at bottom */}
+        <div className="flex flex-shrink-0 flex-col items-center justify-between gap-4 border-t border-stone-200 bg-white p-4 md:flex-row md:p-6 dark:border-stone-800 dark:bg-[#202022]">
+          <div className="hidden text-xs font-medium text-stone-400 md:block">
+            {items.length} templates
+          </div>
+          <div className="flex w-full gap-3 md:w-auto">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="flex-1 rounded-xl px-6 py-2.5 text-sm font-bold text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700 md:flex-none dark:hover:bg-stone-800"
+            >
+              Cancel
+            </button>
+            <form
+              action={async () => {
+                await applyBlueprintToWeek(currentDateStr)
+                setIsOpen(false)
+              }}
+              className="flex-1 md:flex-none"
+            >
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-stone-900/10 transition-all hover:scale-105 hover:shadow-xl md:px-8 dark:bg-white dark:text-black"
+              >
+                <Copy className="h-4 w-4" />
+                Apply
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
-   )
+    </div>
+  )
 }
 
 function SubmitButton() {
-   const { pending } = useFormStatus()
-   return (
-      <button disabled={pending} type="submit" className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition-all shadow-md shadow-orange-500/20 active:scale-95 flex items-center justify-center gap-2">
-         {pending ? 'Adding...' : <><Plus className="w-4 h-4" /> Add Template</>}
-      </button>
-   )
+  const { pending } = useFormStatus()
+  return (
+    <button
+      disabled={pending}
+      type="submit"
+      className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-2.5 text-sm font-bold text-white shadow-md shadow-orange-500/20 transition-all hover:bg-orange-600 active:scale-95 md:py-3"
+    >
+      {pending ? (
+        'Adding...'
+      ) : (
+        <>
+          <Plus className="h-4 w-4" /> Add Template
+        </>
+      )}
+    </button>
+  )
 }

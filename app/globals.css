@@ -66,11 +66,11 @@ body {
 }
 
 .driver-popover.driver-popover-theme {
-  @apply bg-[#FAFAF9] dark:bg-[#1C1917] text-stone-900 dark:text-stone-100 border border-stone-200 dark:border-stone-800 rounded-xl shadow-2xl;
+  @apply rounded-xl border border-stone-200 bg-[#FAFAF9] text-stone-900 shadow-2xl dark:border-stone-800 dark:bg-[#1C1917] dark:text-stone-100;
 }
 
 .driver-popover-title {
-  @apply font-serif text-xl font-bold mb-2;
+  @apply mb-2 font-serif text-xl font-bold;
 }
 
 .driver-popover-description {
@@ -78,5 +78,5 @@ body {
 }
 
 .driver-popover-footer button {
-  @apply bg-orange-500 text-white rounded-lg px-3 py-1 text-xs font-bold hover:bg-orange-600 transition-colors shadow-none text-shadow-none border-none;
+  @apply rounded-lg border-none bg-orange-500 px-3 py-1 text-xs font-bold text-white shadow-none transition-colors text-shadow-none hover:bg-orange-600;
 }

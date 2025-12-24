@@ -12,39 +12,39 @@ export default function MobileSidebar({ children }: { children: React.ReactNode 
   return (
     <>
       {/* TRIGGER BUTTON (Visible only on Mobile) */}
-      <button 
+      <button
         onClick={toggle}
-        className="md:hidden p-2 -ml-2 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors"
+        className="-ml-2 rounded-lg p-2 text-stone-500 transition-colors hover:bg-stone-100 md:hidden dark:hover:bg-stone-800"
       >
-        <Menu className="w-6 h-6" />
+        <Menu className="h-6 w-6" />
       </button>
 
       {/* BACKDROP & PANEL */}
-      {isOpen && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-50 md:hidden">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={toggle}
-          />
-          
-          {/* Sidebar Drawer */}
-          <div className="absolute top-0 bottom-0 left-0 w-[85%] max-w-sm bg-[#F5F5F4] dark:bg-[#18181b] shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col">
-            {/* Close Button Header */}
-            <div className="flex justify-end p-4 border-b border-stone-200 dark:border-stone-800">
-               <button onClick={toggle} className="p-2 text-stone-400 hover:text-stone-600">
-                  <X className="w-6 h-6" />
-               </button>
+      {isOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-50 md:hidden">
+            {/* Backdrop */}
+            <div
+              className="animate-in fade-in absolute inset-0 bg-stone-900/60 backdrop-blur-sm duration-200"
+              onClick={toggle}
+            />
+
+            {/* Sidebar Drawer */}
+            <div className="animate-in slide-in-from-left absolute top-0 bottom-0 left-0 flex w-[85%] max-w-sm flex-col bg-[#F5F5F4] shadow-2xl duration-300 dark:bg-[#18181b]">
+              {/* Close Button Header */}
+              <div className="flex justify-end border-b border-stone-200 p-4 dark:border-stone-800">
+                <button onClick={toggle} className="p-2 text-stone-400 hover:text-stone-600">
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Content passed from parent (The original sidebar) */}
+              <div className="relative flex-1 overflow-hidden">{children}</div>
             </div>
-            
-            {/* Content passed from parent (The original sidebar) */}
-            <div className="flex-1 overflow-hidden relative">
-               {children}
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   )
 }

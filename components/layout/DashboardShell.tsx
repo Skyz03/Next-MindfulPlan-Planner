@@ -27,7 +27,7 @@ export default function DashboardShell({
 
   return (
     // ✅ CHANGED: flex-col for mobile, md:flex-row for desktop
-    <div className="flex h-screen w-full flex-col md:flex-row overflow-hidden bg-[#FAFAF9] dark:bg-[#1C1917]">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-[#FAFAF9] md:flex-row dark:bg-[#1C1917]">
       <InboxCapture />
 
       {/* --- MOBILE SIDEBAR TRIGGER (Hidden on Desktop) --- */}
@@ -37,13 +37,13 @@ export default function DashboardShell({
 
       {/* --- DESKTOP SIDEBAR CONTAINER (Hidden on Mobile) --- */}
       <div
-        className={`hidden md:flex relative h-full flex-none border-r border-stone-200 bg-[#F5F5F4] transition-all duration-300 ease-in-out dark:border-stone-800 dark:bg-[#292524] ${
+        className={`relative hidden h-full flex-none border-r border-stone-200 bg-[#F5F5F4] transition-all duration-300 ease-in-out md:flex dark:border-stone-800 dark:bg-[#292524] ${
           // If Plan Mode OR Sidebar Open -> Width 80
           // Else -> Width 0 (Hidden)
           viewMode === 'plan' || isSidebarOpen
             ? 'w-80 translate-x-0'
             : 'w-0 -translate-x-full border-none'
-          }`}
+        }`}
       >
         {/* Inner Container to prevent content squishing while width animates */}
         <div className="h-full w-80 overflow-hidden">
@@ -53,7 +53,17 @@ export default function DashboardShell({
               onClick={() => setIsSidebarOpen(false)}
               className="absolute top-4 right-4 z-50 bg-transparent p-1 text-stone-400 hover:text-stone-600"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
           )}
 
@@ -70,13 +80,25 @@ export default function DashboardShell({
             title="Open Rituals"
           >
             {/* Sidebar Icon */}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
           </button>
         </div>
       )}
 
       {/* --- MAIN CONTENT (Resizes automatically via Flexbox) --- */}
-      <div className="z-10 flex min-w-0 flex-1 flex-col transition-all duration-300 relative">
+      <div className="relative z-10 flex min-w-0 flex-1 flex-col transition-all duration-300">
         {children}
       </div>
     </div>

@@ -1,35 +1,31 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { addTask } from '@/actions/task' // Check this path
+import { addTask } from '@/actions/task'
 
 export default function InboxCapture() {
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
-  const [priority, setPriority] = useState('medium') // Default state
+  const [priority, setPriority] = useState('medium')
   const [isSaving, setIsSaving] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // 1. Global Hotkey Listener (Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setIsOpen((prev) => !prev)
       }
-      if (e.key === 'Escape') {
-        setIsOpen(false)
-      }
+      if (e.key === 'Escape') setIsOpen(false)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // 2. Auto-focus
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100)
-      setPriority('medium') // Reset priority on open
+      setPriority('medium')
     }
   }, [isOpen])
 
@@ -38,16 +34,13 @@ export default function InboxCapture() {
     if (!input.trim()) return
 
     setIsSaving(true)
-
-    // Construct FormData for the Server Action
     const formData = new FormData()
     formData.append('title', input)
-    formData.append('date_type', 'inbox') // Flags it as Inbox
-    formData.append('priority', priority) // Sends the selected priority
+    formData.append('date_type', 'inbox')
+    formData.append('priority', priority)
 
     await addTask(formData)
 
-    // Reset and Close
     setInput('')
     setIsSaving(false)
     setIsOpen(false)
@@ -56,22 +49,22 @@ export default function InboxCapture() {
   if (!isOpen) return null
 
   return (
-    <div className="animate-in fade-in fixed inset-0 z-[100] flex items-start justify-center bg-black/20 pt-[20vh] backdrop-blur-sm duration-200">
-      {/* Click outside to close */}
+    // ✅ RESPONSIVE: pt-4 on mobile (to avoid keyboard cover), pt-[20vh] on desktop
+    <div className="animate-in fade-in fixed inset-0 z-[100] flex items-start justify-center bg-black/40 px-4 pt-4 backdrop-blur-sm duration-200 md:pt-[20vh]">
       <div className="absolute inset-0" onClick={() => setIsOpen(false)} />
 
       <div className="animate-in zoom-in-95 relative w-full max-w-2xl overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl duration-200 dark:border-stone-800 dark:bg-[#262626]">
-        {/* WRAP IN FORM TO ENABLE "ENTER" KEY SUBMISSION */}
         <form onSubmit={handleSubmit} className="relative">
-          <div className="flex items-center gap-4 px-6 py-6">
-            <div className="flex-none rounded-xl bg-stone-100 p-3 text-stone-500 dark:bg-stone-800">
+          <div className="flex items-center gap-3 px-4 py-4 md:gap-4 md:px-6 md:py-6">
+            <div className="flex-none rounded-xl bg-stone-100 p-2 text-stone-500 md:p-3 dark:bg-stone-800">
               <svg
-                width="24"
-                height="24"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
+                className="md:h-6 md:w-6"
               >
                 <path d="M22 2L11 13"></path>
                 <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
@@ -83,7 +76,8 @@ export default function InboxCapture() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Capture a thought..."
-              className="flex-1 bg-transparent font-serif text-2xl text-stone-800 outline-none placeholder:text-stone-300 dark:text-stone-100"
+              // ✅ RESPONSIVE: text-lg on mobile, text-2xl on desktop
+              className="flex-1 bg-transparent font-serif text-lg text-stone-800 outline-none placeholder:text-stone-300 md:text-2xl dark:text-stone-100"
               autoComplete="off"
             />
 
@@ -92,50 +86,47 @@ export default function InboxCapture() {
             )}
           </div>
 
-          {/* Footer / Controls */}
-          <div className="flex items-center justify-between border-t border-stone-100 bg-stone-50 px-6 py-3 dark:border-stone-800 dark:bg-stone-900/50">
+          {/* Footer */}
+          <div className="flex flex-wrap items-center justify-between gap-y-3 border-t border-stone-100 bg-stone-50 px-4 py-3 md:px-6 dark:border-stone-800 dark:bg-stone-900/50">
             {/* Priority Toggles */}
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPriority('low')}
-                className={`rounded border px-2 py-1 text-[10px] font-bold tracking-wider uppercase transition-all ${priority === 'low' ? 'border-stone-300 bg-white text-stone-600 shadow-sm dark:bg-stone-700 dark:text-stone-200' : 'border-transparent text-stone-400 hover:bg-stone-200/50'}`}
-              >
-                Low
-              </button>
-              <button
-                type="button"
-                onClick={() => setPriority('medium')}
-                className={`rounded border px-2 py-1 text-[10px] font-bold tracking-wider uppercase transition-all ${priority === 'medium' ? 'border-orange-200 bg-white text-orange-600 shadow-sm dark:bg-stone-700 dark:text-orange-400' : 'border-transparent text-stone-400 hover:bg-stone-200/50'}`}
-              >
-                Medium
-              </button>
-              <button
-                type="button"
-                onClick={() => setPriority('high')}
-                className={`rounded border px-2 py-1 text-[10px] font-bold tracking-wider uppercase transition-all ${priority === 'high' ? 'border-red-200 bg-white text-red-600 shadow-sm dark:bg-stone-700 dark:text-red-400' : 'border-transparent text-stone-400 hover:bg-stone-200/50'}`}
-              >
-                High
-              </button>
+              {['low', 'medium', 'high'].map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPriority(p)}
+                  className={`rounded border px-2 py-1 text-[10px] font-bold tracking-wider uppercase transition-all ${
+                    priority === p
+                      ? p === 'high'
+                        ? 'border-red-200 bg-white text-red-600 dark:bg-stone-700 dark:text-red-400'
+                        : p === 'medium'
+                          ? 'border-orange-200 bg-white text-orange-600 dark:bg-stone-700 dark:text-orange-400'
+                          : 'border-stone-300 bg-white text-stone-600 dark:bg-stone-700 dark:text-stone-200'
+                      : 'border-transparent text-stone-400 hover:bg-stone-200/50'
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
             </div>
 
-            <div className="flex gap-4 text-xs text-stone-400">
+            {/* ✅ RESPONSIVE: Hidden on mobile (users just hit 'Go' on keyboard) */}
+            <div className="hidden gap-4 text-xs text-stone-400 md:flex">
               <span className="flex items-center gap-1">
                 <kbd className="rounded border border-stone-200 bg-white px-1.5 py-0.5 font-sans text-[10px] shadow-sm dark:border-stone-700 dark:bg-stone-800">
                   ↵
-                </kbd>
+                </kbd>{' '}
                 Save
               </span>
               <span className="flex items-center gap-1">
                 <kbd className="rounded border border-stone-200 bg-white px-1.5 py-0.5 font-sans text-[10px] shadow-sm dark:border-stone-700 dark:bg-stone-800">
                   Esc
-                </kbd>
+                </kbd>{' '}
                 Close
               </span>
             </div>
           </div>
 
-          {/* HIDDEN SUBMIT BUTTON (The Magic Fix for "Enter") */}
           <button type="submit" className="hidden" />
         </form>
       </div>

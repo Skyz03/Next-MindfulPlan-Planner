@@ -14,14 +14,16 @@ const WEEKENDS = 9
  */
 export async function addBlueprintItem(formData: FormData) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) return
 
   const title = formData.get('title') as string
   const dayOfWeekStr = formData.get('day_of_week')
   const durationStr = formData.get('duration')
 
-  const day_of_week = dayOfWeekStr !== "" ? parseInt(dayOfWeekStr as string) : null
+  const day_of_week = dayOfWeekStr !== '' ? parseInt(dayOfWeekStr as string) : null
   const duration = durationStr ? parseInt(durationStr as string) : 60
 
   const { error } = await supabase.from('blueprints').insert({
@@ -41,7 +43,9 @@ export async function addBlueprintItem(formData: FormData) {
  */
 export async function deleteBlueprintItem(id: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) return
 
   await supabase.from('blueprints').delete().eq('id', id).eq('user_id', user.id)
@@ -53,14 +57,13 @@ export async function deleteBlueprintItem(id: string) {
  */
 export async function applyBlueprintToWeek(targetDateStr: string) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) return
 
   // A. Fetch Blueprint Templates
-  const { data: templates } = await supabase
-    .from('blueprints')
-    .select('*')
-    .eq('user_id', user.id)
+  const { data: templates } = await supabase.from('blueprints').select('*').eq('user_id', user.id)
 
   if (!templates || templates.length === 0) return
 
@@ -79,7 +82,7 @@ export async function applyBlueprintToWeek(targetDateStr: string) {
 
   // Create a quick lookup set: "Title|Date"
   const existingSet = new Set(
-    existingTasks?.map(t => `${t.title.toLowerCase().trim()}|${t.due_date}`) || []
+    existingTasks?.map((t) => `${t.title.toLowerCase().trim()}|${t.due_date}`) || [],
   )
 
   // D. Expand & Prepare Tasks
@@ -102,7 +105,7 @@ export async function applyBlueprintToWeek(targetDateStr: string) {
     }
 
     // Generate a task for each applicable day
-    daysToApply.forEach(dayIndex => {
+    daysToApply.forEach((dayIndex) => {
       let dueDate = null
 
       if (dayIndex !== -1) {
@@ -126,7 +129,7 @@ export async function applyBlueprintToWeek(targetDateStr: string) {
         duration: tmpl.duration,
         priority: tmpl.priority,
         due_date: dueDate,
-        is_completed: false
+        is_completed: false,
       })
     })
   })

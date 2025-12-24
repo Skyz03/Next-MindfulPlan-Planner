@@ -7,7 +7,6 @@ export function ThemeToggle() {
   const { theme, resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
-  // Prevent hydration mismatch by waiting for mount
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -17,11 +16,11 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => {
-        // Use resolvedTheme so "system" toggles correctly
         const nextTheme = resolvedTheme === 'dark' ? 'light' : 'dark'
         setTheme(nextTheme)
       }}
-      className="rounded-lg bg-slate-100 p-2 text-slate-800 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+      // ✅ RESPONSIVE: p-2.5 on mobile for larger touch target
+      className="rounded-lg bg-slate-100 p-2.5 text-slate-800 transition-colors hover:bg-slate-200 active:bg-slate-300 md:p-2 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
       aria-label="Toggle Theme"
     >
       {resolvedTheme === 'dark' ? (
@@ -35,6 +34,7 @@ export function ThemeToggle() {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          className="h-5 w-5 md:h-4 md:w-4"
         >
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -57,6 +57,7 @@ export function ThemeToggle() {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          className="h-5 w-5 md:h-4 md:w-4"
         >
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>

@@ -6,7 +6,7 @@ import {
   useSensors,
   useSensor,
   MouseSensor, // 👈 Import Mouse
-  TouchSensor  // 👈 Import Touch
+  TouchSensor, // 👈 Import Touch
 } from '@dnd-kit/core'
 import { moveTaskToDate, scheduleTaskTime } from '@/actions/task'
 import { useTransition, useId } from 'react'
