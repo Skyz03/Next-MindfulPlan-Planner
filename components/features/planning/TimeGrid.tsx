@@ -13,6 +13,7 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
   const [now, setNow] = useState<Date | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [isMobileDockOpen, setIsMobileDockOpen] = useState(false)
 
   const [optimisticTasks, setOptimisticTask] = useOptimistic(
     tasks,
@@ -72,7 +73,7 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
       <div className="custom-scrollbar relative h-full flex-1 overflow-y-auto bg-[#FAFAF9] dark:bg-[#1C1917]">
         <div
           className="absolute top-0 right-0 left-0 w-full p-4"
-          style={{ height: `${HOURS.length * PIXELS_PER_HOUR}px` }}
+          style={{ height: `${HOURS.length * PIXELS_PER_HOUR}px`, paddingBottom: '120px' }}
         >
           {HOURS.map((hour) => {
             const timeLabel = `${hour < 10 ? '0' + hour : hour}:00`
@@ -99,14 +100,20 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
             const isRunning = !!task.last_started_at
 
             return (
-              <DraggableTask key={task.id} task={task} className="absolute right-4 left-20 z-10" style={{ top: `${topPosition}px`, height: `${height}px` }} >
+              <DraggableTask
+                key={task.id}
+                task={task}
+                className="absolute right-4 left-20 z-10"
+                style={{ top: `${topPosition}px`, height: `${height}px` }}
+              >
                 <div
-                  className={`group/card absolute right-4 left-20 flex cursor-grab flex-col justify-between rounded-xl border p-3 text-xs shadow-sm transition-all hover:z-30 hover:scale-[1.01] ${isDone
-                    ? 'border-stone-200 bg-stone-50 opacity-60 dark:bg-stone-800'
-                    : isRunning
-                      ? 'z-20 border-orange-500 bg-white shadow-lg ring-1 shadow-orange-500/10 ring-orange-500/20 dark:bg-[#262626]'
-                      : 'border-stone-200 bg-white hover:border-orange-300 dark:border-stone-700 dark:bg-[#262626]'
-                    } `}
+                  className={`group/card absolute right-4 left-10 flex cursor-grab flex-col justify-between rounded-xl border p-3 text-xs shadow-sm transition-all hover:z-30 hover:scale-[1.01] ${
+                    isDone
+                      ? 'border-stone-200 bg-stone-50 opacity-60 dark:bg-stone-800'
+                      : isRunning
+                        ? 'z-20 border-orange-500 bg-white shadow-lg ring-1 shadow-orange-500/10 ring-orange-500/20 dark:bg-[#262626]'
+                        : 'border-stone-200 bg-white hover:border-orange-300 dark:border-stone-700 dark:bg-[#262626]'
+                  } `}
                 >
                   {/* TOP ROW: Title & Unschedule */}
                   <div className="flex items-start justify-between gap-2">
@@ -157,10 +164,11 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
                         e.stopPropagation()
                         handleToggle(task.id, isDone)
                       }}
-                      className={`flex h-7 items-center gap-1.5 rounded-md border px-3 text-xs font-bold transition-all ${isDone
-                        ? 'border-green-200 bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'border-stone-200 bg-white text-stone-600 hover:border-green-500 hover:text-green-600'
-                        }`}
+                      className={`flex h-7 items-center gap-1.5 rounded-md border px-3 text-xs font-bold transition-all ${
+                        isDone
+                          ? 'border-green-200 bg-green-100 text-green-700 hover:bg-green-200'
+                          : 'border-stone-200 bg-white text-stone-600 hover:border-green-500 hover:text-green-600'
+                      }`}
                     >
                       {isDone ? (
                         <>
@@ -240,7 +248,7 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
       </div>
 
       {/* 2. DOCK */}
-      <div className="z-20 flex w-72 flex-col border-l border-stone-200 bg-white shadow-xl dark:border-stone-800 dark:bg-[#221F1D]">
+      <div className="z-20 flex hidden w-72 flex-col border-l border-stone-200 bg-white shadow-xl md:flex dark:border-stone-800 dark:bg-[#221F1D]">
         <div className="border-b border-stone-100 bg-stone-50/50 p-4 dark:border-stone-800 dark:bg-stone-900/50">
           <h3 className="font-serif font-bold text-stone-700 dark:text-stone-200">Unscheduled</h3>
           <p className="text-xs text-stone-400">Tasks for today.</p>
@@ -263,6 +271,101 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
             )}
           </div>
         </DockDropZone>
+      </div>
+
+      {/* 🆕 MOBILE DOCK (Slide-up Sheet) */}
+      <div className="md:hidden">
+        {/* Floating Trigger Button */}
+        <button
+          onClick={() => setIsMobileDockOpen(!isMobileDockOpen)}
+          className="fixed right-6 bottom-6 z-50 flex items-center gap-2 rounded-full bg-stone-900 px-5 py-3 text-sm font-bold text-white shadow-xl transition-all hover:scale-105 active:scale-95 dark:bg-white dark:text-black"
+        >
+          {/* You can import these icons from lucide-react */}
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          Unscheduled ({unscheduledTasks.length})
+          {isMobileDockOpen ? (
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          ) : (
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M18 15l-6-6-6 6" />
+            </svg>
+          )}
+        </button>
+
+        {/* Backdrop (Click to close) */}
+        {isMobileDockOpen && (
+          <div
+            className="animate-in fade-in fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+            onClick={() => setIsMobileDockOpen(false)}
+          />
+        )}
+
+        {/* The Bottom Sheet */}
+        <div
+          className={`fixed right-0 bottom-0 left-0 z-50 transform rounded-t-3xl bg-white shadow-2xl transition-transform duration-300 ease-out dark:bg-[#1C1917] ${isMobileDockOpen ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ maxHeight: '60vh', paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          {/* Drag Handle (Visual only) */}
+          <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-stone-300 dark:bg-stone-700" />
+
+          <div className="border-b border-stone-100 p-4 dark:border-stone-800">
+            <h3 className="font-serif font-bold text-stone-700 dark:text-stone-200">
+              Unscheduled Tasks
+            </h3>
+          </div>
+
+          <div className="custom-scrollbar h-[50vh] overflow-y-auto p-1">
+            {/* REUSE THE SAME DOCK LOGIC HERE */}
+            <DockDropZone>
+              <div className="flex-1 space-y-3 p-3">
+                {unscheduledTasks.map((task) => (
+                  <DraggableTask key={task.id} task={task}>
+                    <div className="group cursor-grab rounded-xl border border-stone-200 bg-white p-4 shadow-sm hover:border-orange-400 active:cursor-grabbing dark:border-stone-700 dark:bg-stone-800">
+                      <span className="text-sm font-medium text-stone-700 dark:text-stone-200">
+                        {task.title}
+                      </span>
+                    </div>
+                  </DraggableTask>
+                ))}
+                {unscheduledTasks.length === 0 && (
+                  <div className="flex h-32 flex-col items-center justify-center text-stone-300">
+                    <span className="text-xs italic">All clear!</span>
+                  </div>
+                )}
+              </div>
+            </DockDropZone>
+          </div>
+        </div>
       </div>
     </div>
   )

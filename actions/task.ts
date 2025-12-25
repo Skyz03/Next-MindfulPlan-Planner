@@ -183,15 +183,12 @@ export async function toggleTimer(taskId: string) {
       .from('tasks')
       .update({
         last_started_at: null,
-        actual_duration: newTotal
+        actual_duration: newTotal,
       })
       .eq('id', taskId)
   } else {
     // STARTING: Set timestamp
-    await supabase
-      .from('tasks')
-      .update({ last_started_at: now.toISOString() })
-      .eq('id', taskId)
+    await supabase.from('tasks').update({ last_started_at: now.toISOString() }).eq('id', taskId)
   }
 
   revalidatePath('/dashboard')

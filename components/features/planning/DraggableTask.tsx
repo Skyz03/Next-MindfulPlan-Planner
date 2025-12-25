@@ -8,7 +8,6 @@ export default function DraggableTask({
   children,
   className, // 🆕 Accept className
   style: propStyle,
-
 }: {
   task: any
   children: React.ReactNode
@@ -23,7 +22,7 @@ export default function DraggableTask({
   const style = {
     ...propStyle,
     transform: CSS.Translate.toString(transform),
-    zIndex: 999,
+    zIndex: 45,
     opacity: 0.9,
     cursor: 'grabbing',
     scale: '1.05',
@@ -36,7 +35,7 @@ export default function DraggableTask({
       {...listeners}
       {...attributes}
       suppressHydrationWarning={true}
-      className={`${className || ''} cursor-grab touch-none active:cursor-grabbing ${isDragging ? 'shadow-2xl scale-105' : ''}`}
+      className={`${className || ''} cursor-grab touch-none active:cursor-grabbing ${isDragging ? 'scale-105 shadow-2xl' : ''}`}
     >
       {children}
     </div>
