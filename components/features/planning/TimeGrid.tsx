@@ -3,11 +3,12 @@
 import { useDroppable } from '@dnd-kit/core'
 import DraggableTask from './DraggableTask'
 import { useEffect, useState, useRef, useOptimistic, startTransition } from 'react'
-import { scheduleTaskTime, toggleTask } from '@/actions/task'
+import { scheduleTaskTime, toggleTask, updateTaskDuration } from '@/actions/task'
 import TaskTimer from './TaskTimer'
+import DurationInput from '@/components/ui/DurationInput'
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5) // 5 AM to 10 PM
-const PIXELS_PER_HOUR = 140 // Increased height for better UI spacing
+const PIXELS_PER_HOUR = 140
 
 export default function TimeGrid({ tasks }: { tasks: any[] }) {
   const [now, setNow] = useState<Date | null>(null)
@@ -15,10 +16,11 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
   const menuRef = useRef<HTMLDivElement>(null)
   const [isMobileDockOpen, setIsMobileDockOpen] = useState(false)
 
+  // 1. ⚡️ FIXED: Handle ANY change (duration, status, etc)
   const [optimisticTasks, setOptimisticTask] = useOptimistic(
     tasks,
-    (state, { taskId, isCompleted }: { taskId: string; isCompleted: boolean }) => {
-      return state.map((t) => (t.id === taskId ? { ...t, is_completed: isCompleted } : t))
+    (state, { taskId, changes }: { taskId: string; changes: any }) => {
+      return state.map((t) => (t.id === taskId ? { ...t, ...changes } : t))
     },
   )
 
@@ -62,9 +64,18 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
   function handleToggle(taskId: string, currentStatus: boolean) {
     const newStatus = !currentStatus
     startTransition(() => {
-      setOptimisticTask({ taskId, isCompleted: newStatus })
+      // ✅ Updated to use 'changes' object
+      setOptimisticTask({ taskId, changes: { is_completed: newStatus } })
     })
     toggleTask(taskId, newStatus)
+  }
+
+  // ✅ NEW: Handle Duration Change
+  function handleDurationChange(taskId: string, newDuration: number) {
+    startTransition(() => {
+      setOptimisticTask({ taskId, changes: { duration: newDuration } })
+    })
+    updateTaskDuration(taskId, newDuration)
   }
 
   return (
@@ -95,7 +106,9 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
             const [h, m] = task.start_time.split(':').map(Number)
             const startHour = 5
             const topPosition = (h - startHour) * PIXELS_PER_HOUR + (m / 60) * PIXELS_PER_HOUR + 16
-            const height = Math.max((task.duration / 60) * PIXELS_PER_HOUR, 80) // Min height 80px for controls
+
+            const height = Math.max((task.duration / 60) * PIXELS_PER_HOUR, 80)
+
             const isDone = task.is_completed
             const isRunning = !!task.last_started_at
 
@@ -107,83 +120,76 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
                 style={{ top: `${topPosition}px`, height: `${height}px` }}
               >
                 <div
-                  className={`group/card absolute right-4 left-10 flex cursor-grab flex-col justify-between rounded-xl border p-3 text-xs shadow-sm transition-all hover:z-30 hover:scale-[1.01] ${
-                    isDone
-                      ? 'border-stone-200 bg-stone-50 opacity-60 dark:bg-stone-800'
-                      : isRunning
-                        ? 'z-20 border-orange-500 bg-white shadow-lg ring-1 shadow-orange-500/10 ring-orange-500/20 dark:bg-[#262626]'
-                        : 'border-stone-200 bg-white hover:border-orange-300 dark:border-stone-700 dark:bg-[#262626]'
-                  } `}
+                  className={`group/card absolute h-full right-4 left-10 flex cursor-grab flex-col justify-between rounded-xl border p-3 text-xs shadow-sm transition-all hover:z-30 hover:scale-[1.01] ${isDone
+                    ? 'border-stone-200 bg-stone-50 opacity-60 dark:bg-stone-800'
+                    : isRunning
+                      ? 'z-20 border-orange-500 bg-white shadow-lg ring-1 shadow-orange-500/10 ring-orange-500/20 dark:bg-[#262626]'
+                      : 'border-stone-200 bg-white hover:border-orange-300 dark:border-stone-700 dark:bg-[#262626]'
+                    } `}
                 >
                   {/* TOP ROW: Title & Unschedule */}
                   <div className="flex items-start justify-between gap-2">
-                    <div>
+                    <div className="min-w-0">
                       <div
-                        className={`text-sm leading-tight font-bold ${isDone ? 'text-stone-400 line-through' : 'text-stone-800 dark:text-stone-100'}`}
+                        className={`text-sm leading-tight font-bold truncate ${isDone ? 'text-stone-400 line-through' : 'text-stone-800 dark:text-stone-100'}`}
                       >
                         {task.title}
                       </div>
-                      <div className="mt-1 font-mono text-[10px] text-stone-400">
-                        {task.start_time.slice(0, 5)}
+
+                      {/* ✅ ADDED: Duration Picker */}
+                      <div
+                        className="mt-1 flex items-center gap-2"
+                        // Prevent drag when clicking input
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        <div className="font-mono text-[10px] text-stone-400">
+                          {task.start_time.slice(0, 5)}
+                        </div>
+                        <div className="h-3 w-px bg-stone-200 dark:bg-stone-700"></div>
+                        <DurationInput
+                          defaultMinutes={task.duration}
+                          onChange={(val) => handleDurationChange(task.id, val)}
+                        />
                       </div>
                     </div>
 
-                    {/* Unschedule X (Always visible but subtle) */}
+                    {/* Unschedule X */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         unschedule(task.id)
                       }}
+                      // Prevent drag start
+                      onPointerDown={(e) => e.stopPropagation()}
                       className="rounded-md p-1.5 text-stone-300 transition-colors hover:bg-stone-100 hover:text-red-500 dark:hover:bg-stone-800"
                     >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                   </div>
 
-                  {/* BOTTOM ROW: Controls (Timer + Checkbox) */}
-                  {/* Only show controls if task is NOT done (or allow unchecking) */}
-                  <div className="mt-2 flex items-center justify-between border-t border-stone-100 pt-2 dark:border-stone-800">
-                    {/* Timer Component (Left) */}
+                  {/* BOTTOM ROW: Controls */}
+                  <div
+                    className="mt-2 flex items-center justify-between border-t border-stone-100 pt-2 dark:border-stone-800"
+                    // Prevent drag start on footer
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
                     <div className={isDone ? 'pointer-events-none opacity-0' : 'opacity-100'}>
                       <TaskTimer task={task} />
                     </div>
 
-                    {/* Checkbox (Right - Big & Easy to hit) */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleToggle(task.id, isDone)
                       }}
-                      className={`flex h-7 items-center gap-1.5 rounded-md border px-3 text-xs font-bold transition-all ${
-                        isDone
-                          ? 'border-green-200 bg-green-100 text-green-700 hover:bg-green-200'
-                          : 'border-stone-200 bg-white text-stone-600 hover:border-green-500 hover:text-green-600'
-                      }`}
+                      className={`flex h-7 items-center gap-1.5 rounded-md border px-3 text-xs font-bold transition-all ${isDone
+                        ? 'border-green-200 bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'border-stone-200 bg-white text-stone-600 hover:border-green-500 hover:text-green-600'
+                        }`}
                     >
                       {isDone ? (
                         <>
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                           <span>Done</span>
                         </>
                       ) : (
@@ -208,7 +214,6 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
                 top: `${(parseInt(selectedSlot.split(':')[0]) - 5) * PIXELS_PER_HOUR + 20}px`,
               }}
             >
-              {/* ... picker content same as before ... */}
               <div className="flex items-center justify-between rounded-t-xl border-b border-stone-100 bg-stone-50 p-3 dark:border-stone-700 dark:bg-stone-900/50">
                 <span className="text-xs font-bold tracking-wider text-stone-500 uppercase">
                   Schedule for {selectedSlot}
@@ -275,54 +280,19 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
 
       {/* 🆕 MOBILE DOCK (Slide-up Sheet) */}
       <div className="md:hidden">
-        {/* Floating Trigger Button */}
         <button
           onClick={() => setIsMobileDockOpen(!isMobileDockOpen)}
           className="fixed right-6 bottom-6 z-50 flex items-center gap-2 rounded-full bg-stone-900 px-5 py-3 text-sm font-bold text-white shadow-xl transition-all hover:scale-105 active:scale-95 dark:bg-white dark:text-black"
         >
-          {/* You can import these icons from lucide-react */}
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
           Unscheduled ({unscheduledTasks.length})
           {isMobileDockOpen ? (
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
           ) : (
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M18 15l-6-6-6 6" />
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 15l-6-6-6 6" /></svg>
           )}
         </button>
 
-        {/* Backdrop (Click to close) */}
         {isMobileDockOpen && (
           <div
             className="animate-in fade-in fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
@@ -330,22 +300,17 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
           />
         )}
 
-        {/* The Bottom Sheet */}
         <div
           className={`fixed right-0 bottom-0 left-0 z-50 transform rounded-t-3xl bg-white shadow-2xl transition-transform duration-300 ease-out dark:bg-[#1C1917] ${isMobileDockOpen ? 'translate-y-0' : 'translate-y-full'}`}
           style={{ maxHeight: '60vh', paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-          {/* Drag Handle (Visual only) */}
           <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-stone-300 dark:bg-stone-700" />
-
           <div className="border-b border-stone-100 p-4 dark:border-stone-800">
             <h3 className="font-serif font-bold text-stone-700 dark:text-stone-200">
               Unscheduled Tasks
             </h3>
           </div>
-
           <div className="custom-scrollbar h-[50vh] overflow-y-auto p-1">
-            {/* REUSE THE SAME DOCK LOGIC HERE */}
             <DockDropZone>
               <div className="flex-1 space-y-3 p-3">
                 {unscheduledTasks.map((task) => (

@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities'
 export default function DraggableTask({
   task,
   children,
-  className, // 🆕 Accept className
+  className,
   style: propStyle,
 }: {
   task: any
@@ -22,10 +22,10 @@ export default function DraggableTask({
   const style = {
     ...propStyle,
     transform: CSS.Translate.toString(transform),
-    zIndex: 45,
-    opacity: 0.9,
-    cursor: 'grabbing',
-    scale: '1.05',
+    zIndex: isDragging ? 50 : 45,
+    opacity: isDragging ? 0.9 : 1,
+    cursor: isDragging ? 'grabbing' : 'grab',
+    scale: isDragging ? '1.05' : '1',
   }
 
   return (
