@@ -5,7 +5,7 @@ import DraggableTask from './DraggableTask'
 import { useEffect, useState, useRef, useOptimistic, startTransition } from 'react'
 import { scheduleTaskTime, toggleTask, updateTaskDuration } from '@/actions/task'
 import TaskTimer from './TaskTimer'
-import DurationInput from '@/components/ui/DurationInput' 
+import DurationInput from '@/components/ui/DurationInput'
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5) // 5 AM to 10 PM
 const PIXELS_PER_HOUR = 140
@@ -120,7 +120,7 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
                 style={{ top: `${topPosition}px`, height: `${height}px` }}
               >
                 <div
-                  className={`group/card absolute right-4 left-10 flex cursor-grab flex-col justify-between rounded-xl border p-3 text-xs shadow-sm transition-all hover:z-30 hover:scale-[1.01] ${isDone
+                  className={`group/card absolute h-full right-4 left-10 flex cursor-grab flex-col justify-between rounded-xl border p-3 text-xs shadow-sm transition-all hover:z-30 hover:scale-[1.01] ${isDone
                     ? 'border-stone-200 bg-stone-50 opacity-60 dark:bg-stone-800'
                     : isRunning
                       ? 'z-20 border-orange-500 bg-white shadow-lg ring-1 shadow-orange-500/10 ring-orange-500/20 dark:bg-[#262626]'
