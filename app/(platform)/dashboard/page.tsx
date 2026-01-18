@@ -17,6 +17,7 @@ import ReviewTrigger from '@/components/features/reflection/ReviewTrigger'
 import SidebarGoal from '@/components/features/planning/SidebarGoal'
 import OnboardingTour from '@/components/features/onboarding/OnboardingTour'
 import BlueprintModal from '@/components/features/planning/BlueprintModal'
+import StrategyDashboard from '@/components/features/strategy/StrategyDashboard'
 import HeaderTimer from '@/components/features/focus/HeaderTimer'
 
 export default async function Dashboard({
@@ -27,6 +28,7 @@ export default async function Dashboard({
   const supabase = await createClient()
   const params = await searchParams
   const viewMode = params.view || 'focus' // 'focus' | 'plan'
+
 
   const today = new Date()
   const selectedDateStr = params.date || formatDate(today)
@@ -325,6 +327,8 @@ export default async function Dashboard({
       <DashboardShell sidebar={sidebarContent} viewMode={viewMode}>
         {/* HEADER: COMMAND CENTER */}
         {/* ✅ RESPONSIVE: Padding adjusted for mobile vs desktop */}
+
+
         <div
           id="tour-welcome"
           className="relative z-40 flex h-16 items-center justify-between border-b border-stone-200 bg-[#FAFAF9] px-4 transition-colors duration-500 md:px-8 md:pl-16 dark:border-stone-800 dark:bg-[#1C1917]"
@@ -381,6 +385,7 @@ export default async function Dashboard({
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
                 </Link>
+
               </div>
 
               {/* ✅ RESPONSIVE: Hide Date Text Range on Mobile (Compact Mode) */}
@@ -420,71 +425,85 @@ export default async function Dashboard({
               >
                 Plan
               </Link>
+
+              <Link
+                id="view-toggle-strategy"
+                href={`/dashboard?date=${normalizedDateStr}&view=strategy`}
+                className={`rounded-md px-3 py-1 text-xs font-bold transition-all md:px-4 ${viewMode === 'strategy' ? 'bg-white text-stone-800 shadow-sm dark:bg-stone-600 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}
+              >
+                Strategy
+              </Link>
+
             </div>
           </div>
         </div>
 
-        {/* MAIN CONTENT AREA */}
-        {viewMode === 'plan' ? (
-          // PlanningGrid internal logic handles the scroll snapping
-          <PlanningGrid
-            weekDays={weekDays}
-            allTasks={allWeekTasks}
-            nextWeekTasks={nextWeekTasks}
-            nextMondayStr={nextWeekStartStr}
-          />
-        ) : (
-          <div className="relative flex h-full flex-col overflow-hidden">
-            <div className="z-30 flex h-auto min-h-[5rem] flex-none flex-col border-b border-stone-200 bg-[#FAFAF9]/90 px-4 py-4 shadow-sm backdrop-blur-md md:px-8 dark:border-stone-800 dark:bg-[#1C1917]/90">
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="hidden text-[10px] font-bold tracking-widest text-stone-400 uppercase md:block">
-                  Move tasks to another day
-                </h2>
-              </div>
-              {/* ✅ RESPONSIVE: Added overflow-x-auto for day list on mobile */}
-              <div className="no-scrollbar flex flex-1 items-start gap-2 overflow-x-auto pb-2">
-                {weekDays.map((day) => {
-                  const dateStr = formatDate(day)
-                  const isActive = dateStr === normalizedDateStr
-                  const dayLoad = allWeekTasks.filter((t) => t.due_date === dateStr).length
 
-                  return (
-                    // ✅ RESPONSIVE: Added min-w-[70px] to prevent squishing
-                    <DroppableDay
-                      key={dateStr}
-                      dateStr={dateStr}
-                      className="h-full min-w-[70px] flex-1"
-                    >
-                      <Link
-                        href={`/dashboard?date=${dateStr}&view=focus`}
-                        scroll={false}
-                        className={`block flex h-full flex-col items-center justify-center gap-1 rounded-xl border-2 transition-all ${isActive ? 'border-stone-800 bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900' : 'border-transparent bg-white text-stone-500 hover:border-orange-300 dark:bg-stone-800'} `}
+        {/* MAIN CONTENT AREA */}
+
+        {viewMode === 'strategy' ? (
+          <StrategyDashboard />
+        ) :
+          viewMode === 'plan' ? (
+            // PlanningGrid internal logic handles the scroll snapping
+            <PlanningGrid
+              weekDays={weekDays}
+              allTasks={allWeekTasks}
+              nextWeekTasks={nextWeekTasks}
+              nextMondayStr={nextWeekStartStr}
+            />
+          ) : (
+            <div className="relative flex h-full flex-col overflow-hidden">
+              <div className="z-30 flex h-auto min-h-[5rem] flex-none flex-col border-b border-stone-200 bg-[#FAFAF9]/90 px-4 py-4 shadow-sm backdrop-blur-md md:px-8 dark:border-stone-800 dark:bg-[#1C1917]/90">
+                <div className="mb-2 flex items-center justify-between">
+                  <h2 className="hidden text-[10px] font-bold tracking-widest text-stone-400 uppercase md:block">
+                    Move tasks to another day
+                  </h2>
+                </div>
+                {/* ✅ RESPONSIVE: Added overflow-x-auto for day list on mobile */}
+                <div className="no-scrollbar flex flex-1 items-start gap-2 overflow-x-auto pb-2">
+                  {weekDays.map((day) => {
+                    const dateStr = formatDate(day)
+                    const isActive = dateStr === normalizedDateStr
+                    const dayLoad = allWeekTasks.filter((t) => t.due_date === dateStr).length
+
+                    return (
+                      // ✅ RESPONSIVE: Added min-w-[70px] to prevent squishing
+                      <DroppableDay
+                        key={dateStr}
+                        dateStr={dateStr}
+                        className="h-full min-w-[70px] flex-1"
                       >
-                        <span className="text-[10px] font-bold uppercase">
-                          {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                        </span>
-                        <span className="font-serif text-lg leading-none font-bold">
-                          {day.getDate()}
-                        </span>
-                        <div className="mt-1 flex gap-0.5">
-                          {Array.from({ length: Math.min(dayLoad, 4) }).map((_, i) => (
-                            <div
-                              key={i}
-                              className={`h-1 w-1 rounded-full ${isActive ? 'bg-white/50' : 'bg-orange-400'}`}
-                            ></div>
-                          ))}
-                        </div>
-                      </Link>
-                    </DroppableDay>
-                  )
-                })}
+                        <Link
+                          href={`/dashboard?date=${dateStr}&view=focus`}
+                          scroll={false}
+                          className={`block flex h-full flex-col items-center justify-center gap-1 rounded-xl border-2 transition-all ${isActive ? 'border-stone-800 bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-900' : 'border-transparent bg-white text-stone-500 hover:border-orange-300 dark:bg-stone-800'} `}
+                        >
+                          <span className="text-[10px] font-bold uppercase">
+                            {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                          </span>
+                          <span className="font-serif text-lg leading-none font-bold">
+                            {day.getDate()}
+                          </span>
+                          <div className="mt-1 flex gap-0.5">
+                            {Array.from({ length: Math.min(dayLoad, 4) }).map((_, i) => (
+                              <div
+                                key={i}
+                                className={`h-1 w-1 rounded-full ${isActive ? 'bg-white/50' : 'bg-orange-400'}`}
+                              ></div>
+                            ))}
+                          </div>
+                        </Link>
+                      </DroppableDay>
+                    )
+                  })}
+                </div>
+              </div>
+              <div id="tour-focus" className="relative z-10 flex-1 overflow-hidden">
+                <TimeGrid tasks={allWeekTasks.filter((t) => t.due_date === normalizedDateStr)} />
               </div>
             </div>
-            <div id="tour-focus" className="relative z-10 flex-1 overflow-hidden">
-              <TimeGrid tasks={allWeekTasks.filter((t) => t.due_date === normalizedDateStr)} />
-            </div>
-          </div>
-        )}
+          )}
         <ReviewTrigger data={reviewData} weekStart={startOfWeek} nextMonday={nextMondayStr} />
       </DashboardShell>
     </PlannerBoard>
