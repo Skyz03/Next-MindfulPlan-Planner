@@ -3,9 +3,10 @@
 import { useDroppable } from '@dnd-kit/core'
 import DraggableTask from './DraggableTask'
 import { useEffect, useState, useRef, useOptimistic, startTransition } from 'react'
-import { scheduleTaskTime, toggleTask, updateTaskDuration } from '@/actions/task'
+import { scheduleTaskTime, toggleTask, updateTaskDuration, updateTaskDescription } from '@/actions/task'
 import TaskTimer from './TaskTimer'
 import DurationInput from '@/components/ui/DurationInput'
+import { FileText, X, Clock, Calendar } from 'lucide-react'
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5) // 5 AM to 10 PM
 const PIXELS_PER_HOUR = 140
@@ -16,7 +17,10 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
   const menuRef = useRef<HTMLDivElement>(null)
   const [isMobileDockOpen, setIsMobileDockOpen] = useState(false)
 
-  // 1. ⚡️ FIXED: Handle ANY change (duration, status, etc)
+  // 🆕 STATE: Track which task's note is open
+  const [activeNoteTask, setActiveNoteTask] = useState<any>(null)
+
+  // 1. OPTIMISTIC STATE
   const [optimisticTasks, setOptimisticTask] = useOptimistic(
     tasks,
     (state, { taskId, changes }: { taskId: string; changes: any }) => {
@@ -64,13 +68,11 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
   function handleToggle(taskId: string, currentStatus: boolean) {
     const newStatus = !currentStatus
     startTransition(() => {
-      // ✅ Updated to use 'changes' object
       setOptimisticTask({ taskId, changes: { is_completed: newStatus } })
     })
     toggleTask(taskId, newStatus)
   }
 
-  // ✅ NEW: Handle Duration Change
   function handleDurationChange(taskId: string, newDuration: number) {
     startTransition(() => {
       setOptimisticTask({ taskId, changes: { duration: newDuration } })
@@ -102,6 +104,7 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
             </div>
           )}
 
+          {/* RENDER TASKS */}
           {scheduledTasks.map((task) => {
             const [h, m] = task.start_time.split(':').map(Number)
             const startHour = 5
@@ -109,103 +112,24 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
 
             const height = Math.max((task.duration / 60) * PIXELS_PER_HOUR, 80)
 
-            const isDone = task.is_completed
-            const isRunning = !!task.last_started_at
-
             return (
-              <DraggableTask
+              <TimeGridTaskCard
                 key={task.id}
                 task={task}
-                className="absolute right-4 left-20 z-10"
-                style={{ top: `${topPosition}px`, height: `${height}px` }}
-              >
-                <div
-                  className={`group/card absolute h-full right-4 left-10 flex cursor-grab flex-col justify-between rounded-xl border p-3 text-xs shadow-sm transition-all hover:z-30 hover:scale-[1.01] ${isDone
-                    ? 'border-stone-200 bg-stone-50 opacity-60 dark:bg-stone-800'
-                    : isRunning
-                      ? 'z-20 border-orange-500 bg-white shadow-lg ring-1 shadow-orange-500/10 ring-orange-500/20 dark:bg-[#262626]'
-                      : 'border-stone-200 bg-white hover:border-orange-300 dark:border-stone-700 dark:bg-[#262626]'
-                    } `}
-                >
-                  {/* TOP ROW: Title & Unschedule */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div
-                        className={`text-sm leading-tight font-bold truncate ${isDone ? 'text-stone-400 line-through' : 'text-stone-800 dark:text-stone-100'}`}
-                      >
-                        {task.title}
-                      </div>
-
-                      {/* ✅ ADDED: Duration Picker */}
-                      <div
-                        className="mt-1 flex items-center gap-2"
-                        // Prevent drag when clicking input
-                        onPointerDown={(e) => e.stopPropagation()}
-                      >
-                        <div className="font-mono text-[10px] text-stone-400">
-                          {task.start_time.slice(0, 5)}
-                        </div>
-                        <div className="h-3 w-px bg-stone-200 dark:bg-stone-700"></div>
-                        <DurationInput
-                          defaultMinutes={task.duration}
-                          onChange={(val) => handleDurationChange(task.id, val)}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Unschedule X */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        unschedule(task.id)
-                      }}
-                      // Prevent drag start
-                      onPointerDown={(e) => e.stopPropagation()}
-                      className="rounded-md p-1.5 text-stone-300 transition-colors hover:bg-stone-100 hover:text-red-500 dark:hover:bg-stone-800"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                    </button>
-                  </div>
-
-                  {/* BOTTOM ROW: Controls */}
-                  <div
-                    className="mt-2 flex items-center justify-between border-t border-stone-100 pt-2 dark:border-stone-800"
-                    // Prevent drag start on footer
-                    onPointerDown={(e) => e.stopPropagation()}
-                  >
-                    <div className={isDone ? 'pointer-events-none opacity-0' : 'opacity-100'}>
-                      <TaskTimer task={task} />
-                    </div>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleToggle(task.id, isDone)
-                      }}
-                      className={`flex h-7 items-center gap-1.5 rounded-md border px-3 text-xs font-bold transition-all ${isDone
-                        ? 'border-green-200 bg-green-100 text-green-700 hover:bg-green-200'
-                        : 'border-stone-200 bg-white text-stone-600 hover:border-green-500 hover:text-green-600'
-                        }`}
-                    >
-                      {isDone ? (
-                        <>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                          <span>Done</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="h-3 w-3 rounded border border-stone-300"></div>
-                          <span>Mark Done</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </DraggableTask>
+                isDone={task.is_completed}
+                isRunning={!!task.last_started_at}
+                height={height}
+                topPosition={topPosition}
+                unschedule={unschedule}
+                handleToggle={handleToggle}
+                handleDurationChange={handleDurationChange}
+                // 🆕 Pass the opener function
+                onOpenNotes={() => setActiveNoteTask(task)}
+              />
             )
           })}
 
-          {/* ... Keep Quick Picker Logic ... */}
+          {/* QUICK PICKER MODAL */}
           {selectedSlot && (
             <div
               ref={menuRef}
@@ -278,7 +202,7 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
         </DockDropZone>
       </div>
 
-      {/* 🆕 MOBILE DOCK (Slide-up Sheet) */}
+      {/* 3. MOBILE DOCK */}
       <div className="md:hidden">
         <button
           onClick={() => setIsMobileDockOpen(!isMobileDockOpen)}
@@ -330,6 +254,161 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
               </div>
             </DockDropZone>
           </div>
+        </div>
+      </div>
+
+      {/* 🆕 TASK NOTE POPUP MODAL */}
+      {activeNoteTask && (
+        <TaskNoteModal
+          task={activeNoteTask}
+          onClose={() => setActiveNoteTask(null)}
+        />
+      )}
+
+    </div>
+  )
+}
+
+// ⚡️ UPDATED SUB-COMPONENT
+function TimeGridTaskCard({ task, isDone, isRunning, height, topPosition, unschedule, handleToggle, handleDurationChange, onOpenNotes }: any) {
+
+  return (
+    <DraggableTask
+      key={task.id}
+      task={task}
+      className="absolute right-4 left-20 z-10"
+      style={{ top: `${topPosition}px`, height: `${height}px` }}
+    >
+      <div
+        className={`group/card flex h-full flex-col justify-between rounded-xl border p-3 text-xs shadow-sm transition-all hover:z-30 hover:scale-[1.01] overflow-hidden ${isDone
+            ? 'border-stone-200 bg-stone-50 opacity-60 dark:bg-stone-800'
+            : isRunning
+              ? 'z-20 border-orange-500 bg-white shadow-lg ring-1 shadow-orange-500/10 ring-orange-500/20 dark:bg-[#262626]'
+              : 'border-stone-200 bg-white hover:border-orange-300 dark:border-stone-700 dark:bg-[#262626]'
+          } `}
+      >
+        {/* TOP ROW */}
+        <div className="flex items-start justify-between gap-2 flex-shrink-0">
+          <div className="min-w-0 flex-1">
+            <div className={`text-sm leading-tight font-bold truncate ${isDone ? 'text-stone-400 line-through' : 'text-stone-800 dark:text-stone-100'}`}>
+              {task.title}
+            </div>
+
+            <div
+              className="mt-1 flex items-center gap-2"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="font-mono text-[10px] text-stone-400">
+                {task.start_time.slice(0, 5)}
+              </div>
+              <div className="h-3 w-px bg-stone-200 dark:bg-stone-700"></div>
+              <DurationInput
+                defaultMinutes={task.duration}
+                onChange={(val: number) => handleDurationChange(task.id, val)}
+              />
+            </div>
+          </div>
+
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              unschedule(task.id)
+            }}
+            className="rounded-md p-1.5 text-stone-300 transition-colors hover:bg-stone-100 hover:text-red-500 dark:hover:bg-stone-800"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+
+        {/* BOTTOM ROW */}
+        <div
+          className="mt-2 flex items-center justify-between border-t border-stone-100 pt-2 flex-shrink-0 dark:border-stone-800"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-2">
+            <div className={isDone ? 'pointer-events-none opacity-0' : 'opacity-100'}>
+              <TaskTimer task={task} />
+            </div>
+
+            {/* 📝 NOTES BUTTON (Triggers Modal) */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onOpenNotes() }}
+              className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors ${task.description ? 'text-stone-600 bg-stone-100 dark:text-stone-300 dark:bg-stone-700' : 'text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'}`}
+              title="Open Notes"
+            >
+              <FileText className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleToggle(task.id, isDone)
+            }}
+            className={`flex h-6 md:h-7 items-center gap-1.5 rounded-md border px-2 md:px-3 text-[10px] md:text-xs font-bold transition-all ${isDone
+                ? 'border-green-200 bg-green-100 text-green-700 hover:bg-green-200'
+                : 'border-stone-200 bg-white text-stone-600 hover:border-green-500 hover:text-green-600'
+              }`}
+          >
+            {isDone ? <span>Done</span> : <span>Check</span>}
+          </button>
+        </div>
+      </div>
+    </DraggableTask>
+  )
+}
+
+// 🆕 THE POPUP COMPONENT
+function TaskNoteModal({ task, onClose }: { task: any, onClose: () => void }) {
+  // Local state for the textarea value
+  const [desc, setDesc] = useState(task.description || '')
+
+  const handleSave = () => {
+    updateTaskDescription(task.id, desc)
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-900/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl dark:border-stone-800 dark:bg-[#1C1917] animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* HEADER */}
+        <div className="flex items-center justify-between border-b border-stone-100 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-900">
+          <div className="flex items-center gap-3">
+            <div className={`h-3 w-3 rounded-full ${task.is_completed ? 'bg-emerald-500' : 'bg-stone-300'}`} />
+            <h3 className="font-bold text-stone-800 dark:text-stone-100 line-clamp-1">{task.title}</h3>
+          </div>
+          <button onClick={handleSave} className="rounded-full p-1 text-stone-400 hover:bg-stone-200 hover:text-stone-600 dark:hover:bg-stone-800">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* BODY */}
+        <div className="p-0">
+          <textarea
+            autoFocus
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder="Log your results, blockers, or ideas..."
+            className="h-64 w-full resize-none p-6 text-sm leading-relaxed text-stone-700 outline-none placeholder:text-stone-300 dark:bg-[#1C1917] dark:text-stone-300"
+          />
+        </div>
+
+        {/* FOOTER */}
+        <div className="flex items-center justify-between border-t border-stone-100 bg-stone-50 px-6 py-3 dark:border-stone-800 dark:bg-stone-900">
+          <div className="flex gap-4 text-xs text-stone-400">
+            <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> {task.duration}m scheduled</span>
+            {task.start_time && <span className="flex items-center gap-1.5"><Calendar className="h-3 w-3" /> {task.start_time}</span>}
+          </div>
+          <button
+            onClick={handleSave}
+            className="rounded-lg bg-stone-900 px-4 py-2 text-xs font-bold text-white hover:bg-black dark:bg-white dark:text-black"
+          >
+            Save Notes
+          </button>
         </div>
       </div>
     </div>
