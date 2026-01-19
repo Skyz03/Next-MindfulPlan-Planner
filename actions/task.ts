@@ -206,3 +206,14 @@ export async function updateTaskDuration(taskId: string, duration: number) {
 
   revalidatePath('/dashboard')
 }
+
+export async function updateTaskDescription(taskId: string, description: string) {
+  const supabase = await createClient()
+
+  await supabase
+    .from('tasks')
+    .update({ description })
+    .eq('id', taskId)
+
+  revalidatePath('/dashboard')
+}

@@ -1,111 +1,115 @@
 'use client'
 
-import { Target, CheckCircle2, Circle } from 'lucide-react'
-import EditableText from '@/components/ui/EditableText'
-import { toggleTask, deleteTask, updateTaskDuration } from '@/actions/task'
-import DurationInput from '@/components/ui/DurationInput'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { GripVertical, X, CheckCircle2, Circle, FileText, ChevronDown } from 'lucide-react'
+import { useState } from 'react'
+import { updateTaskDescription } from '@/actions/task' // Import the action
 
-export default function TaskItem({ task }: { task: any }) {
-  // Determine Priority Color
-  const priorityColor =
-    task.priority === 'high'
-      ? 'bg-orange-500'
-      : task.priority === 'medium'
-        ? 'bg-amber-400'
-        : 'bg-stone-300 dark:bg-stone-600'
+export default function TaskItem({
+  task,
+  onRemove,
+  onToggle
+}: {
+  task: any
+  onRemove?: (id: string) => void
+  onToggle?: (id: string, status: boolean) => void
+}) {
+  const [isExpanded, setIsExpanded] = useState(false) // 👈 Track expansion
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: task.id, data: { task } })
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1
+  }
 
   return (
-    <div className="group relative mb-3 w-full select-none">
-      {/* THE CARD CONTAINER */}
-      <div className="relative overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-300/50 hover:shadow-lg dark:border-stone-800 dark:bg-[#262626] dark:hover:border-orange-500/30">
-        {/* Priority Strip (Left Side) */}
-        <div
-          className={`absolute top-0 bottom-0 left-0 w-1 ${priorityColor} transition-all group-hover:w-1.5`}
-        ></div>
+    <div ref={setNodeRef} style={style} className="group relative mb-2">
+      <div className={`rounded-lg border bg-white transition-all dark:bg-[#262626] ${isExpanded ? 'border-orange-300 shadow-md ring-1 ring-orange-100 dark:border-orange-800' : 'border-stone-200 dark:border-stone-800'
+        }`}>
 
-        <div className="p-3 pl-4">
-          {/* HEADER: Checkbox & Title */}
-          <div className="mb-2 flex items-start gap-3">
-            <form
-              action={async (formData) => {
-                const taskId = formData.get('taskId')
-                if (typeof taskId === 'string') {
-                  await toggleTask(taskId, !task.is_completed)
-                }
-              }}
-              className="mt-0.5"
-            >
-              <input type="hidden" name="taskId" value={task.id} />
-              {/* ✅ RESPONSIVE: Added p-1 -m-1 to increase touch target size without changing layout */}
-              <button
-                className="-m-1 p-1 text-stone-300 transition-colors hover:text-orange-500"
-                title="Complete Task"
-              >
-                {task.is_completed ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                ) : (
-                  <Circle className="h-4 w-4" />
-                )}
-              </button>
-            </form>
+        {/* MAIN ROW */}
+        <div className="flex items-center gap-2 p-3">
+          {/* Drag Handle */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab text-stone-300 hover:text-stone-600 active:cursor-grabbing dark:text-stone-600 dark:hover:text-stone-400"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
 
-            <div className="min-w-0 flex-1">
-              <EditableText
-                id={task.id}
-                initialText={task.title}
-                type="task"
-                className={`block text-sm leading-snug font-medium transition-all ${
-                  task.is_completed
-                    ? 'text-stone-400 line-through decoration-stone-300'
-                    : 'text-stone-700 group-hover:text-stone-900 dark:text-stone-200 dark:group-hover:text-white'
-                }`}
-              />
-            </div>
-
-            {/* ✅ RESPONSIVE: Delete Button Visibility 
-                - Mobile: opacity-100 (Always visible because no hover)
-                - Desktop: md:opacity-0 (Hidden until hover)
-            */}
-            <div className="absolute top-2 right-2 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
-              <form action={deleteTask}>
-                <input type="hidden" name="taskId" value={task.id} />
-                <button className="rounded-md p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-red-500 md:p-1 dark:hover:bg-stone-800">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
-                </button>
-              </form>
-            </div>
-          </div>
-
-          {/* FOOTER: Metadata Pills */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* 1. Goal Pill (If linked) */}
-            {task.goals?.title && (
-              <div className="flex max-w-[120px] items-center gap-1 rounded-md border border-stone-200 bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-400">
-                <Target className="h-3 w-3 text-orange-400" />
-                <span className="truncate">{task.goals.title}</span>
-              </div>
+          {/* Checkbox */}
+          <button
+            onClick={() => onToggle && onToggle(task.id, task.is_completed)}
+            className="text-stone-300 transition-colors hover:text-emerald-500"
+          >
+            {task.is_completed ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            ) : (
+              <Circle className="h-4 w-4" />
             )}
+          </button>
 
-            {/* 2. Interactive Duration */}
-            <DurationInput
-              defaultMinutes={task.duration || 0}
-              onChange={(newDuration) => updateTaskDuration(task.id, newDuration)}
-            />
+          {/* Title */}
+          <div
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex flex-1 cursor-pointer items-center gap-2"
+          >
+            <span className={`text-sm font-medium ${task.is_completed ? 'text-stone-400 line-through' : 'text-stone-700 dark:text-stone-200'}`}>
+              {task.title}
+            </span>
+            {/* Icon Indicator if desc exists */}
+            {task.description && <FileText className="h-3 w-3 text-stone-400" />}
           </div>
+
+          {/* Delete Button (Only on Hover) */}
+          {onRemove && (
+            <button
+              onClick={() => onRemove(task.id)}
+              className="opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Expand Toggle */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={`text-stone-300 hover:text-stone-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
         </div>
 
-        {/* Bottom "Thickness" */}
-        <div className="h-1 w-full border-t border-stone-200 bg-stone-100 dark:border-stone-700 dark:bg-stone-800"></div>
+        {/* EXPANDED DESCRIPTION AREA */}
+        {isExpanded && (
+          <div className="border-t border-stone-100 bg-stone-50/50 p-3 pt-0 dark:border-stone-800 dark:bg-black/20 animate-in slide-in-from-top-1">
+            <textarea
+              autoFocus
+              defaultValue={task.description || ''}
+              placeholder="Add notes, results, or learnings..."
+              // Save when user clicks away
+              onBlur={(e) => updateTaskDescription(task.id, e.target.value)}
+              // Stop drag events so you can select text
+              onPointerDown={(e) => e.stopPropagation()}
+              className="mt-2 w-full resize-none rounded-md bg-transparent text-xs leading-relaxed text-stone-600 placeholder:text-stone-400 focus:outline-none dark:text-stone-300"
+              rows={3}
+            />
+            <div className="mt-1 flex justify-end">
+              <span className="text-[9px] text-stone-400">Auto-saved</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
