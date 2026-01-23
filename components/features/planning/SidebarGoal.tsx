@@ -9,12 +9,10 @@ import { addTask, updateTaskDescription, updateTaskPriority } from '@/actions/ta
 import { deleteGoal as deleteGoalAction } from '@/actions/goal'
 import DurationInput from '@/components/ui/DurationInput'
 import PriorityBadge from '@/components/ui/PriorityBadge'
-import PrioritySelect from '@/components/ui/PrioritySelect' // ✅ Import
+import PrioritySelect from '@/components/ui/PrioritySelect'
 
 export default function SidebarGoal({ goal }: { goal: any }) {
   const [isExpanded, setIsExpanded] = useState(false)
-
-  // ✅ NEW: Track priority for the "Add Task" form
   const [addPriority, setAddPriority] = useState('medium')
 
   return (
@@ -83,14 +81,13 @@ export default function SidebarGoal({ goal }: { goal: any }) {
           ))}
 
           {/* ADD STEP FORM */}
+          {/* ✅ FIXED: Added relative z-[100] so popup renders ON TOP of next goal */}
           <form
             action={addTask}
-            className="group/add relative mt-2 opacity-100 transition-opacity hover:opacity-100 md:opacity-60"
+            className="group/add relative z-[100] mt-2 opacity-100 transition-opacity hover:opacity-100 md:opacity-60"
           >
             <input type="hidden" name="date_type" value="backlog" />
             <input type="hidden" name="goal_id" value={goal.id} />
-
-            {/* ✅ HIDDEN INPUT: Passes the selected priority to the server action */}
             <input type="hidden" name="priority" value={addPriority} />
 
             <div className="flex flex-wrap items-center gap-2">
@@ -105,13 +102,15 @@ export default function SidebarGoal({ goal }: { goal: any }) {
                 className="min-w-[100px] flex-1 border-b border-transparent bg-transparent py-1.5 text-xs text-stone-600 transition-colors outline-none placeholder:text-stone-300 focus:border-stone-300 md:py-1 dark:text-stone-400 dark:focus:border-stone-600"
               />
 
+              {/* ✅ FIXED: Removed 'scale-90' transform wrapper which traps z-index */}
               <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover/add:opacity-100 focus-within:opacity-100">
-                <div className="origin-right scale-90">
+
+                <div className="w-[60px]">
                   <DurationInput defaultMinutes={60} />
                 </div>
 
-                {/* ✅ REPLACED: Native Select -> Custom Priority Picker */}
-                <div className="scale-90">
+                {/* Priority Select */}
+                <div className="min-w-[80px]">
                   <PrioritySelect
                     value={addPriority}
                     onChange={setAddPriority}

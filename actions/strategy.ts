@@ -89,6 +89,7 @@ export async function addGoalStep(formData: FormData) {
 
     const title = String(formData.get('title'))
     const goalId = String(formData.get('goalId'))
+      const priority = String(formData.get('priority') || 'medium')
 
     if (!user || !title || !goalId) return
 
@@ -98,7 +99,8 @@ export async function addGoalStep(formData: FormData) {
         title: title,
         goal_id: goalId,
         duration: 60, // Default 1h
-        is_completed: false
+        is_completed: false,
+        priority: priority
     })
 
     revalidatePath('/dashboard')
