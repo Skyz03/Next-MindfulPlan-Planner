@@ -4,7 +4,9 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, X, CheckCircle2, Circle, FileText, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
-import { updateTaskDescription } from '@/actions/task' // Import the action
+import { updateTaskDescription, updateTaskPriority } from '@/actions/task' // ✅ Import priority action
+import PrioritySelect from '@/components/ui/PrioritySelect' // ✅ Import UI
+import PriorityBadge from '@/components/ui/PriorityBadge' // ✅ Import UI
 
 export default function TaskItem({
   task,
@@ -15,7 +17,7 @@ export default function TaskItem({
   onRemove?: (id: string) => void
   onToggle?: (id: string, status: boolean) => void
 }) {
-  const [isExpanded, setIsExpanded] = useState(false) // 👈 Track expansion
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const {
     attributes,
@@ -32,10 +34,22 @@ export default function TaskItem({
     opacity: isDragging ? 0.5 : 1
   }
 
+  // 🎨 Dynamic Border Logic:
+  // If Expanded -> Focus Orange
+  // If High Priority -> Rose Tint
+  // If Medium -> Orange Tint
+  // Default -> Stone
+  const borderColor = isExpanded
+    ? 'border-orange-300 shadow-md ring-1 ring-orange-100 dark:border-orange-800'
+    : task.priority === 'high'
+      ? 'border-rose-200 bg-rose-50/30 dark:border-rose-900/30 dark:bg-rose-900/10'
+      : task.priority === 'medium'
+        ? 'border-orange-200 bg-orange-50/30 dark:border-orange-900/30 dark:bg-orange-900/10'
+        : 'border-stone-200 dark:border-stone-800'
+
   return (
     <div ref={setNodeRef} style={style} className="group relative mb-2">
-      <div className={`rounded-lg border bg-white transition-all dark:bg-[#262626] ${isExpanded ? 'border-orange-300 shadow-md ring-1 ring-orange-100 dark:border-orange-800' : 'border-stone-200 dark:border-stone-800'
-        }`}>
+      <div className={`rounded-lg border bg-white transition-all dark:bg-[#262626] ${borderColor}`}>
 
         {/* MAIN ROW */}
         <div className="flex items-center gap-2 p-3">
@@ -60,16 +74,20 @@ export default function TaskItem({
             )}
           </button>
 
-          {/* Title */}
+          {/* Title Area */}
           <div
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex flex-1 cursor-pointer items-center gap-2"
+            className="flex flex-1 cursor-pointer items-center gap-2 overflow-hidden"
           >
-            <span className={`text-sm font-medium ${task.is_completed ? 'text-stone-400 line-through' : 'text-stone-700 dark:text-stone-200'}`}>
+            <span className={`text-sm font-medium truncate ${task.is_completed ? 'text-stone-400 line-through' : 'text-stone-700 dark:text-stone-200'}`}>
               {task.title}
             </span>
+
+            {/* ✅ Priority Badge (Visual Signal) */}
+            <PriorityBadge priority={task.priority} />
+
             {/* Icon Indicator if desc exists */}
-            {task.description && <FileText className="h-3 w-3 text-stone-400" />}
+            {task.description && <FileText className="h-3 w-3 flex-shrink-0 text-stone-400" />}
           </div>
 
           {/* Delete Button (Only on Hover) */}
@@ -91,18 +109,27 @@ export default function TaskItem({
           </button>
         </div>
 
-        {/* EXPANDED DESCRIPTION AREA */}
+        {/* EXPANDED AREA: Priority & Notes */}
         {isExpanded && (
-          <div className="border-t border-stone-100 bg-stone-50/50 p-3 pt-0 dark:border-stone-800 dark:bg-black/20 animate-in slide-in-from-top-1">
+          <div className="border-t border-stone-100 bg-stone-50/50 p-3 dark:border-stone-800 dark:bg-black/20 animate-in slide-in-from-top-1">
+
+            {/* ✅ Priority Selection Header */}
+            <div className="mb-3 flex items-center justify-between border-b border-stone-100 pb-2 dark:border-stone-800">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Priority Level</span>
+              <PrioritySelect
+                value={task.priority || 'low'}
+                onChange={(val) => updateTaskPriority(task.id, val)}
+              />
+            </div>
+
+            {/* Description Textarea */}
             <textarea
               autoFocus
               defaultValue={task.description || ''}
               placeholder="Add notes, results, or learnings..."
-              // Save when user clicks away
               onBlur={(e) => updateTaskDescription(task.id, e.target.value)}
-              // Stop drag events so you can select text
               onPointerDown={(e) => e.stopPropagation()}
-              className="mt-2 w-full resize-none rounded-md bg-transparent text-xs leading-relaxed text-stone-600 placeholder:text-stone-400 focus:outline-none dark:text-stone-300"
+              className="w-full resize-none rounded-md bg-transparent text-xs leading-relaxed text-stone-600 placeholder:text-stone-400 focus:outline-none dark:text-stone-300"
               rows={3}
             />
             <div className="mt-1 flex justify-end">

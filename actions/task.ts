@@ -217,3 +217,9 @@ export async function updateTaskDescription(taskId: string, description: string)
 
   revalidatePath('/dashboard')
 }
+
+export async function updateTaskPriority(taskId: string, priority: string) {
+  const supabase = await createClient()
+  await supabase.from('tasks').update({ priority }).eq('id', taskId)
+  revalidatePath('/dashboard')
+}
