@@ -30,7 +30,10 @@ export default async function StrategyDashboard() {
                 {/* GRID LAYOUT */}
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 xl:gap-10">
                     {strategies.map((goal) => (
-                        <StrategyCard key={goal.id} goal={goal} />
+                        <StrategyCard
+                            key={goal.id}
+                            goal={goal}
+                        />
                     ))}
 
                     <NewStrategyCard />
