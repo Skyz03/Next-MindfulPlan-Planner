@@ -10,6 +10,7 @@ import { deleteGoal as deleteGoalAction } from '@/actions/goal'
 import DurationInput from '@/components/ui/DurationInput'
 import PriorityBadge from '@/components/ui/PriorityBadge'
 import PrioritySelect from '@/components/ui/PrioritySelect'
+import TaskCard from '@/components/universal/TaskCard'
 
 export default function SidebarGoal({ goal }: { goal: any }) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -127,8 +128,7 @@ export default function SidebarGoal({ goal }: { goal: any }) {
 }
 
 function SidebarTaskItem({ task }: { task: any }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-
+  // Use Draggable (Clone behavior) instead of Sortable
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `sidebar-${task.id}`,
     data: { taskId: task.id, type: 'sidebar-task', duration: task.duration }
@@ -136,77 +136,19 @@ function SidebarTaskItem({ task }: { task: any }) {
 
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-    zIndex: 999,
-    position: 'relative' as 'relative'
   } : undefined
 
-  const priorityStyles = task.priority === 'high'
-    ? 'border-rose-200 bg-rose-50/40 dark:border-rose-900/30 dark:bg-rose-900/10'
-    : task.priority === 'medium'
-      ? 'border-orange-200 bg-orange-50/40 dark:border-orange-900/30 dark:bg-orange-900/10'
-      : 'border-stone-100 bg-white dark:border-stone-800 dark:bg-[#222]'
-
-  if (isDragging) {
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        className="rounded-lg border border-stone-300 bg-white p-3 shadow-2xl opacity-90 rotate-2 cursor-grabbing"
-      >
-        <span className="text-xs font-bold text-stone-800">{task.title}</span>
-      </div>
-    )
-  }
-
   return (
-    <div className={`group relative rounded-lg border transition-all ${priorityStyles}`}>
-      <div className="flex items-center gap-2 p-2.5">
-        <button
-          ref={setNodeRef}
-          {...listeners}
-          {...attributes}
-          className="cursor-grab text-stone-300 hover:text-stone-600 active:cursor-grabbing dark:text-stone-600 dark:hover:text-stone-400"
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
-
-        <div
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="flex flex-1 cursor-pointer items-center gap-2 min-w-0"
-        >
-          <span className="truncate text-xs font-medium text-stone-600 dark:text-stone-300">
-            {task.title}
-          </span>
-          <PriorityBadge priority={task.priority} />
-          {task.description && <FileText className="h-3 w-3 flex-shrink-0 text-stone-400" />}
-        </div>
-
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`text-stone-300 hover:text-stone-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-        >
-          <ChevronDown className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {isExpanded && (
-        <div className="border-t border-stone-100 bg-stone-50/80 p-3 animate-in slide-in-from-top-1 dark:border-stone-800 dark:bg-black/20">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-stone-400">Priority</span>
-            <PrioritySelect
-              value={task.priority || 'low'}
-              onChange={(val) => updateTaskPriority(task.id, val)}
-            />
-          </div>
-          <textarea
-            defaultValue={task.description || ''}
-            placeholder="Add details, links, or notes..."
-            onBlur={(e) => updateTaskDescription(task.id, e.target.value)}
-            className="w-full resize-none rounded-md bg-white border border-stone-100 p-2 text-xs text-stone-600 outline-none focus:border-orange-200 dark:bg-stone-900 dark:border-stone-800 dark:text-stone-300"
-            rows={2}
-          />
-        </div>
-      )}
+    <div style={style}>
+      <TaskCard
+        task={task}
+        isDragging={isDragging}
+        dragRef={setNodeRef}
+        dragListeners={listeners}
+        dragAttributes={attributes}
+        // Sidebar specific: slightly smaller text or padding if needed via className
+        className="mb-1"
+      />
     </div>
   )
 }

@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { updateGoalStrategy, deleteStrategyGoal, addGoalStep } from '@/actions/strategy'
-import { updateTaskDescription, updateTaskPriority } from '@/actions/task' // ✅ Import priority action
-import { Calendar, Flag, MapPin, Pencil, Save, X, Sparkles, Target, Trash2, Plus, CheckCircle2, Circle, FileText, ChevronDown } from 'lucide-react'
-import PrioritySelect from '@/components/ui/PrioritySelect' // ✅ Import
-import PriorityBadge from '@/components/ui/PriorityBadge'   // ✅ Import
+import { toggleTask } from '@/actions/task' // ✅ Import toggle action
+import { Calendar, Flag, MapPin, Pencil, Save, X, Sparkles, Target, Trash2, Plus } from 'lucide-react'
+import PrioritySelect from '@/components/ui/PrioritySelect'
+import TaskCard from '@/components/universal/TaskCard' // ✅ Import Universal Component
 
 export default function StrategyCard({ goal }: { goal: any }) {
     const [isEditing, setIsEditing] = useState(false)
@@ -22,6 +22,7 @@ export default function StrategyCard({ goal }: { goal: any }) {
 
     return (
         <div className="group relative overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 dark:border-stone-800 dark:bg-[#1C1917]">
+
             {/* HEADER */}
             <div className="relative flex items-start justify-between border-b border-stone-100 bg-stone-50/40 p-6 backdrop-blur-sm dark:border-stone-800 dark:bg-white/5">
                 <div className="space-y-1">
@@ -60,7 +61,8 @@ export default function StrategyCard({ goal }: { goal: any }) {
                     <EditForm goal={goal} close={() => setIsEditing(false)} />
                 ) : (
                     <div className="space-y-10">
-                        {/* JOURNEY BAR */}
+
+                        {/* 1. JOURNEY BAR */}
                         <div className="relative mx-2 pt-4 pb-2">
                             <div className="absolute -top-1 left-0 text-[9px] font-bold tracking-widest text-stone-300 uppercase">Start</div>
                             <div className="absolute -top-1 right-0 text-[9px] font-bold tracking-widest text-stone-300 uppercase">Vision</div>
@@ -75,7 +77,7 @@ export default function StrategyCard({ goal }: { goal: any }) {
                             </div>
                         </div>
 
-                        {/* NARRATIVE */}
+                        {/* 2. NARRATIVE */}
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <div className="relative rounded-2xl border border-stone-100 bg-stone-50 p-5 dark:border-stone-800 dark:bg-stone-900/50">
                                 <div className="absolute -top-3 left-4 bg-white px-2 text-[10px] font-bold tracking-widest text-stone-400 uppercase dark:bg-[#1C1917]"><span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Reality</span></div>
@@ -87,7 +89,7 @@ export default function StrategyCard({ goal }: { goal: any }) {
                             </div>
                         </div>
 
-                        {/* TACTICAL BREAKDOWN */}
+                        {/* 3. TACTICAL BREAKDOWN */}
                         <div className="border-t border-stone-100 pt-6 dark:border-stone-800">
                             <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-stone-500">Tactical Breakdown</h4>
 
@@ -96,7 +98,6 @@ export default function StrategyCard({ goal }: { goal: any }) {
                                 <input type="hidden" name="goalId" value={goal.id} />
                                 <input type="hidden" name="priority" value={addPriority} />
 
-                                {/* Input Container */}
                                 <div className="relative flex items-center">
                                     <input
                                         name="title"
@@ -105,7 +106,7 @@ export default function StrategyCard({ goal }: { goal: any }) {
                                         className="w-full rounded-xl border border-stone-200 bg-white py-3 pl-4 pr-32 text-sm shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-stone-700 dark:bg-stone-800 dark:text-white dark:focus:ring-orange-900/20"
                                     />
 
-                                    {/* Priority Picker (Inside Input) */}
+                                    {/* Priority Picker */}
                                     <div className="absolute right-10 top-1/2 -translate-y-1/2 scale-90">
                                         <PrioritySelect
                                             value={addPriority}
@@ -113,18 +114,23 @@ export default function StrategyCard({ goal }: { goal: any }) {
                                         />
                                     </div>
 
-                                    {/* Submit Button */}
                                     <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-stone-100 p-1.5 text-stone-500 hover:bg-orange-500 hover:text-white transition-colors dark:bg-stone-700">
                                         <Plus className="h-4 w-4" />
                                     </button>
                                 </div>
                             </form>
 
-                            {/* STEPS LIST */}
+                            {/* STEPS LIST (Using Universal TaskCard) */}
                             <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
                                 {goal.tasks && goal.tasks.length > 0 ? (
                                     goal.tasks.map((task: any) => (
-                                        <StrategyTaskRow key={task.id} task={task} />
+                                        <TaskCard
+                                            key={task.id}
+                                            task={task}
+                                            showDragHandle={false}
+                                            showStatusBadge={true} // ✅ Feature: Show Schedule Status
+                                            onToggle={() => toggleTask(task.id, !task.is_completed)} // ✅ Feature: Allow toggling
+                                        />
                                     ))
                                 ) : (
                                     <div className="text-center py-4 text-xs text-stone-400 italic">
@@ -140,97 +146,8 @@ export default function StrategyCard({ goal }: { goal: any }) {
     )
 }
 
-// ⚡️ EXPANDABLE TASK ROW WITH PRIORITY
-function StrategyTaskRow({ task }: { task: any }) {
-    const [isExpanded, setIsExpanded] = useState(false)
-    const isScheduled = !!task.date || !!task.start_time
-
-    // Priority Styling
-    const borderClass = task.priority === 'high'
-        ? 'border-rose-200 bg-rose-50/20 dark:border-rose-900/30'
-        : task.priority === 'medium'
-            ? 'border-orange-200 bg-orange-50/20 dark:border-orange-900/30'
-            : 'border-transparent bg-white dark:bg-white/5'
-
-    return (
-        <div className={`rounded-lg border transition-all hover:border-stone-200 dark:hover:border-stone-700 ${borderClass}`}>
-
-            {/* Main Row */}
-            <div
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="group/task flex cursor-pointer items-center justify-between p-2"
-            >
-                <div className="flex items-center gap-3 min-w-0">
-                    {/* Status Circle */}
-                    {task.is_completed ? (
-                        <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-500" />
-                    ) : (
-                        <Circle className="h-4 w-4 flex-shrink-0 text-stone-300" />
-                    )}
-
-                    {/* Title */}
-                    <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                        <span className={`text-sm truncate ${task.is_completed ? 'text-stone-400 line-through' : 'text-stone-700 dark:text-stone-300'}`}>
-                            {task.title}
-                        </span>
-
-                        {/* ✅ Priority Badge */}
-                        <PriorityBadge priority={task.priority} />
-
-                        {/* Note Indicator */}
-                        {task.description && (
-                            <FileText className="h-3 w-3 flex-shrink-0 text-stone-400" />
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    {/* Status Badge */}
-                    {!task.is_completed && (
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isScheduled
-                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                            : 'bg-stone-100 text-stone-400 dark:bg-stone-800'
-                            }`}>
-                            {isScheduled ? 'Scheduled' : 'Backlog'}
-                        </span>
-                    )}
-
-                    {/* Chevron */}
-                    <div className={`text-stone-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                        <ChevronDown className="h-4 w-4" />
-                    </div>
-                </div>
-            </div>
-
-            {/* Expanded Details */}
-            {isExpanded && (
-                <div className="border-t border-stone-100 px-3 py-3 dark:border-stone-800 animate-in slide-in-from-top-1">
-
-                    {/* Priority Settings */}
-                    <div className="mb-3 flex items-center justify-between">
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-stone-400">Priority Level</span>
-                        <PrioritySelect
-                            value={task.priority || 'low'}
-                            onChange={(val) => updateTaskPriority(task.id, val)}
-                        />
-                    </div>
-
-                    {/* Description */}
-                    <textarea
-                        defaultValue={task.description || ''}
-                        placeholder="Log what was done, key learnings, or results..."
-                        onBlur={(e) => updateTaskDescription(task.id, e.target.value)}
-                        className="w-full resize-none rounded-lg bg-stone-50 p-3 text-xs leading-relaxed text-stone-700 outline-none focus:ring-2 focus:ring-orange-100 dark:bg-black/20 dark:text-stone-300 dark:focus:ring-orange-900/20"
-                        rows={3}
-                    />
-                </div>
-            )}
-        </div>
-    )
-}
-
 function EditForm({ goal, close }: { goal: any, close: () => void }) {
-    // ... (Keep existing EditForm code exactly as is)
+    // ... (This section remains exactly the same as before)
     return (
         <form action={async (formData) => {
             await updateGoalStrategy(formData)
