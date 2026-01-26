@@ -14,7 +14,7 @@ export async function getStrategyData() {
         .from('goals')
         .select(`
       *,
-      tasks (id, title, is_completed)
+      tasks (id, title, is_completed, priority, description)
     `)
         .eq('user_id', user.id)
         .eq('status', 'active')
@@ -89,7 +89,7 @@ export async function addGoalStep(formData: FormData) {
 
     const title = String(formData.get('title'))
     const goalId = String(formData.get('goalId'))
-      const priority = String(formData.get('priority') || 'medium')
+    const priority = String(formData.get('priority') || 'medium')
 
     if (!user || !title || !goalId) return
 
