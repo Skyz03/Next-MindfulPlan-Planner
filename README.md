@@ -1,3 +1,15 @@
+<!-- Task Card Title Not Editable -->
+<!-- Too Much Happening in the Plan Mode  -->
+<!-- Too Much Unnessary features in the Focus mode too i.e. Timer -> Remove that with make log better -->
+<!-- Updates in the Navigation  -->
+<!-- Changing from the Toyota to Proshe  -->
+<!-- Stratergy section is too much flair -> Change into minimalism  -->
+
+
+<!-- Implement the use of npm install zod cmdk -->
+<!-- npm install clsx tailwind-merge  -->
+<!-- Implement the command Pallete  -->
+
 # MindfulPlan 🧠
 
 **MindfulPlan** is a modern, data-driven lifestyle planner built with **Next.js 15 (App Router)** and **Supabase**. It bridges the gap between long-term vision and daily execution by connecting high-level Goals to Weekly Rituals and Daily Focus tasks.
