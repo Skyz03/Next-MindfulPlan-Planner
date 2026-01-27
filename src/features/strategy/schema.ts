@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TaskSchema } from '@/features/tasks/schema';
 
 export const GoalSchema = z.object({
     id: z.string().uuid().optional(),
@@ -10,7 +11,7 @@ export const GoalSchema = z.object({
     progress: z.number().min(0).max(100).default(0),
 
     // Nested logic (Strategies have tasks)
-    tasks: z.array(z.any()).optional(), // We'll link strict types later
+    tasks: z.array(TaskSchema).optional().default([]),
 });
 
 export type Goal = z.infer<typeof GoalSchema>;

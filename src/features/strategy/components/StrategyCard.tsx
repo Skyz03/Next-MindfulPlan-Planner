@@ -4,20 +4,28 @@ import { useState } from 'react'
 import { updateGoalStrategy, deleteStrategyGoal, addGoalStep } from '@/features/strategy/actions'
 import { toggleTask } from '@/features/tasks/actions'
 import { Calendar, Flag, MapPin, Pencil, Save, X, Sparkles, Target, Trash2, Plus } from 'lucide-react'
-import PrioritySelect from '@/features/tasks/components/PrioritySelect'
+import PrioritySelect, { PriorityLevel } from '@/features/tasks/components/PrioritySelect' // 👈 Import Type
 import TaskCard from '@/features/tasks/components/TaskCard'
 
-export default function StrategyCard({ goal }: { goal: any }) {
-    const [isEditing, setIsEditing] = useState(false)
-    // State to track priority for the "Add New Step" form
-    const [addPriority, setAddPriority] = useState('medium')
+import { Goal } from '@/types'
 
-    // Calculate days left
+interface StrategyCardProps {
+    goal: Goal
+}
+
+// ✅ FIX 1: Correct Props Destructuring
+export default function StrategyCard({ goal }: StrategyCardProps) {
+    const [isEditing, setIsEditing] = useState(false)
+
+    // ✅ FIX 2: Strict Typing for Priority State
+    // This ensures 'addPriority' is always 'low'|'medium'|'high', not just string
+    const [addPriority, setAddPriority] = useState<PriorityLevel>('medium')
+
+    // Calculate days left (Safety check for null deadline)
     const daysLeft = goal.deadline
         ? Math.ceil((new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
         : null
 
-    // Dynamic Progress Gradient
     const progressColor = goal.progress >= 100
         ? 'from-emerald-400 to-emerald-600'
         : 'from-orange-400 via-rose-500 to-purple-600'
@@ -45,7 +53,8 @@ export default function StrategyCard({ goal }: { goal: any }) {
                         )}
                         <span className="flex items-center gap-1.5">
                             <Target className="h-3 w-3 text-stone-400" />
-                            {goal.completedTasks} / {goal.totalTasks} Milestones
+                            {/* Calculate completed and total milestones from goal.tasks array */}
+                            {goal.tasks?.filter(task => task.is_completed).length || 0} / {goal.tasks?.length || 0} Milestones
                         </span>
                     </div>
                 </div>
@@ -65,17 +74,15 @@ export default function StrategyCard({ goal }: { goal: any }) {
                 ) : (
                     <div className="space-y-10">
 
-                        {/* 1. JOURNEY BAR (Visualizer) */}
+                        {/* 1. JOURNEY BAR */}
                         <div className="relative mx-2 pt-4 pb-2">
                             <div className="absolute -top-1 left-0 text-[9px] font-bold tracking-widest text-stone-300 uppercase">Start</div>
                             <div className="absolute -top-1 right-0 text-[9px] font-bold tracking-widest text-stone-300 uppercase">Vision</div>
                             <div className="relative h-2 w-full rounded-full bg-stone-100 dark:bg-stone-800">
-                                {/* Progress Beam */}
                                 <div
                                     className={`absolute left-0 top-0 h-full rounded-full bg-gradient-to-r ${progressColor} opacity-90 shadow-[0_0_15px_rgba(249,115,22,0.4)] transition-all duration-1000 ease-out`}
                                     style={{ width: `${Math.max(goal.progress, 5)}%` }}
                                 ></div>
-                                {/* Rocket Icon */}
                                 <div
                                     className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 transition-all duration-1000 ease-out will-change-left"
                                     style={{ left: `${Math.max(goal.progress, 5)}%` }}
@@ -92,7 +99,6 @@ export default function StrategyCard({ goal }: { goal: any }) {
 
                         {/* 2. NARRATIVE GRID */}
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                            {/* Current Reality */}
                             <div className="relative rounded-2xl border border-stone-100 bg-stone-50 p-5 dark:border-stone-800 dark:bg-stone-900/50">
                                 <div className="absolute -top-3 left-4 bg-white px-2 text-[10px] font-bold tracking-widest text-stone-400 uppercase dark:bg-[#1C1917]">
                                     <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> Reality</span>
@@ -102,7 +108,6 @@ export default function StrategyCard({ goal }: { goal: any }) {
                                 </p>
                             </div>
 
-                            {/* Future Vision */}
                             <div className="relative rounded-2xl border border-orange-100 bg-orange-50/50 p-5 dark:border-orange-900/20 dark:bg-orange-900/10">
                                 <div className="absolute -top-3 right-4 bg-white px-2 text-[10px] font-bold tracking-widest text-orange-600 uppercase dark:bg-[#1C1917] dark:text-orange-400">
                                     <span className="flex items-center gap-1">The Goal <Flag className="h-3 w-3" /></span>
@@ -120,7 +125,6 @@ export default function StrategyCard({ goal }: { goal: any }) {
                             {/* ADD STEP FORM */}
                             <form action={addGoalStep} className="mb-4 relative z-[100]">
                                 <input type="hidden" name="goalId" value={goal.id} />
-                                {/* Hidden input to pass the selected priority */}
                                 <input type="hidden" name="priority" value={addPriority} />
 
                                 <div className="relative flex items-center">
@@ -131,7 +135,7 @@ export default function StrategyCard({ goal }: { goal: any }) {
                                         className="w-full rounded-xl border border-stone-200 bg-white py-3 pl-4 pr-32 text-sm shadow-sm outline-none transition-all focus:border-orange-500 focus:ring-2 focus:ring-orange-100 dark:border-stone-700 dark:bg-stone-800 dark:text-white dark:focus:ring-orange-900/20"
                                     />
 
-                                    {/* Priority Picker (Absolute Positioned) */}
+                                    {/* Priority Picker */}
                                     <div className="absolute right-10 top-1/2 -translate-y-1/2 scale-90">
                                         <PrioritySelect
                                             value={addPriority}
@@ -145,16 +149,17 @@ export default function StrategyCard({ goal }: { goal: any }) {
                                 </div>
                             </form>
 
-                            {/* TASK LIST (Using Universal Component) */}
+                            {/* TASK LIST */}
                             <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar pr-2">
                                 {goal.tasks && goal.tasks.length > 0 ? (
-                                    goal.tasks.map((task: any) => (
+                                    // ✅ FIX 3: No 'any'. TS knows this is a Task array.
+                                    goal.tasks.map((task) => (
                                         <TaskCard
                                             key={task.id}
                                             task={task}
                                             showDragHandle={false}
                                             showStatusBadge={true}
-                                            onToggle={() => toggleTask(task.id, !task.is_completed)}
+                                            onToggle={() => task.id && toggleTask(task.id, !task.is_completed)}
                                         />
                                     ))
                                 ) : (
@@ -171,7 +176,8 @@ export default function StrategyCard({ goal }: { goal: any }) {
     )
 }
 
-function EditForm({ goal, close }: { goal: any, close: () => void }) {
+// ✅ FIX 4: Explicit Typing for EditForm Props
+function EditForm({ goal, close }: { goal: Goal, close: () => void }) {
     return (
         <form action={async (formData) => {
             await updateGoalStrategy(formData)
@@ -180,37 +186,34 @@ function EditForm({ goal, close }: { goal: any, close: () => void }) {
             <input type="hidden" name="goalId" value={goal.id} />
 
             <div className="grid gap-6 md:grid-cols-2">
-                {/* Reality Input */}
                 <div className="space-y-2">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Current Reality (Point A)</label>
                     <textarea
                         name="reality"
-                        defaultValue={goal.current_reality}
+                        defaultValue={goal.current_reality || ''}
                         placeholder="I currently struggle with..."
                         className="h-32 w-full resize-none rounded-xl border border-stone-200 bg-white p-4 text-sm leading-relaxed text-stone-700 shadow-sm outline-none ring-2 ring-transparent transition-all focus:border-stone-300 focus:ring-stone-100 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:focus:ring-stone-800"
                     />
                 </div>
 
-                {/* Vision Input */}
                 <div className="space-y-2">
                     <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-orange-500">
                         <Sparkles className="h-3 w-3" /> Success Vision (Point B)
                     </label>
                     <textarea
                         name="vision"
-                        defaultValue={goal.vision_statement}
+                        defaultValue={goal.vision_statement || ''}
                         placeholder="I want to become..."
                         className="h-32 w-full resize-none rounded-xl border border-orange-200 bg-orange-50/30 p-4 text-sm leading-relaxed text-stone-900 shadow-sm outline-none ring-2 ring-transparent transition-all focus:border-orange-300 focus:ring-orange-100 dark:border-orange-900/30 dark:bg-orange-900/10 dark:text-stone-100 dark:focus:ring-orange-900/20"
                     />
                 </div>
             </div>
 
-            {/* Footer Actions */}
             <div className="mt-6 flex items-center justify-between border-t border-stone-100 pt-6 dark:border-stone-800">
                 <button
                     type="button"
                     onClick={async () => {
-                        if (confirm('Are you sure you want to delete this strategy? This cannot be undone.')) {
+                        if (goal.id && confirm('Are you sure you want to delete this strategy? This cannot be undone.')) {
                             await deleteStrategyGoal(goal.id)
                         }
                     }}
@@ -225,7 +228,7 @@ function EditForm({ goal, close }: { goal: any, close: () => void }) {
                         <input
                             type="date"
                             name="deadline"
-                            defaultValue={goal.deadline}
+                            defaultValue={goal.deadline || ''}
                             className="bg-transparent text-xs font-bold text-stone-700 outline-none dark:text-stone-300"
                         />
                     </div>
