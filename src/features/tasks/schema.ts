@@ -1,16 +1,38 @@
-import { z } from 'zod'
+import { z } from 'zod';
+// 1. Define Enums (Reusable constants)
+export const PriorityEnum = z.enum(['low', 'medium', 'high']);
 
-// Define the shape of a Task. If data doesn't match this, the app rejects it.
+// 2. The Main Schema (Matches your Database logic)
 export const TaskSchema = z.object({
-    id: z.string().uuid(),
-    title: z.string().min(1, "Task title cannot be empty").max(100),
-    priority: z.enum(['low', 'medium', 'high']),
+    id: z.string().uuid().optional(), // Optional because new tasks won't have an ID yet
+    title: z.string()
+        .min(1, "Task title cannot be empty")
+        .max(100, "Task title is too long (max 100 chars)"),
+    description: z.string().optional().nullable(), // Allow nulls from DB
+    priority: PriorityEnum.default('low'),
     is_completed: z.boolean().default(false),
-    date: z.string().date().optional(), // YYYY-MM-DD
-})
 
-// Derive the TypeScript type FROM the schema (Single Source of Truth)
-export type Task = z.infer<typeof TaskSchema>
+    // Dates can be tricky. We allow strings (ISO) or Date objects, transforming them to standard strings.
+    date: z.union([z.string(), z.date(), z.null()])
+        .optional()
+        .transform((val) => (val instanceof Date ? val.toISOString().split('T')[0] : val)),
 
-// Schema for creating a task (we don't need ID or completion status yet)
-export const CreateTaskSchema = TaskSchema.pick({ title: true, priority: true })
+    start_time: z.string().nullable().optional(),
+    duration: z.number().min(0).optional(),
+});
+
+// 3. Specific Schemas for Actions (Optimization)
+// When CREATING, we only need a title.
+export const CreateTaskSchema = TaskSchema.pick({
+    title: true,
+    priority: true,
+    date: true
+});
+
+// When UPDATING, we need an ID and partial fields.
+export const UpdateTaskSchema = TaskSchema.partial().required({
+    id: true
+});
+
+// 4. Export the Type (No need to write interfaces manually anymore!)
+export type Task = z.infer<typeof TaskSchema>;

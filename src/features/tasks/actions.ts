@@ -3,166 +3,286 @@
 import { createClient } from '@/core/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { z } from 'zod'
+import { TaskSchema, PriorityEnum } from './schema' // Import your new laws
 
+// --- HELPER: PROTECTED USER ---
 async function getUser() {
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login') // Protect the action
+  if (!user) redirect('/login')
 
   return { supabase, user }
 }
 
+// ==========================================
+// 1. ADD TASK (Fully Validated)
+// ==========================================
 export async function addTask(formData: FormData) {
   const { supabase, user } = await getUser()
 
-  // 1. Extract standard fields
-  const title = formData.get('title') as string
-  const goalId = formData.get('goal_id') as string
-  const dateType = formData.get('date_type') as string
-  const specificDate = formData.get('specific_date') as string
+  // A. Extract Raw Form Data
+  const rawTitle = formData.get('title')
+  const rawPriority = formData.get('priority')
+  const rawStartTime = formData.get('start_time')
+  const rawDuration = formData.get('duration')
+  const dateType = formData.get('date_type')
+  const specificDate = formData.get('specific_date')
+  const goalId = formData.get('goal_id')
 
-  // 2. Extract new fields (with fallbacks)
-  const priority = (formData.get('priority') as string) || 'medium'
-  const startTime = (formData.get('start_time') as string) || null // Expecting "HH:MM"
-  const durationRaw = formData.get('duration') as string
-  const duration = durationRaw ? parseInt(durationRaw) : 60 // Default 60m
+  // B. Handle Date Logic (Business Logic Layer)
+  let computedDate: string | null = null
+  if (dateType === 'specific' && specificDate) {
+    computedDate = specificDate.toString()
+  }
+  // 'inbox' and 'backlog' imply date is null, which is the default
 
-  if (!title) return
+  // C. Define Action-Specific Schema
+  // We extend the base TaskSchema to handle Form string coercion
+  const CreateTaskPayload = TaskSchema.pick({
+    title: true,
+    priority: true,
+    start_time: true,
+    // We don't pick 'date' directly because we mapped it manually above
+  }).extend({
+    duration: z.coerce.number().default(60), // Auto-convert "60" string to 60 number
+    goal_id: z.string().optional().nullable()
+  })
 
-  // 3. Construct the Payload
-  const taskData: any = {
-    title,
+  // D. Validate
+  const result = CreateTaskPayload.safeParse({
+    title: rawTitle,
+    priority: rawPriority,
+    start_time: rawStartTime || null, // Convert empty strings to null
+    duration: rawDuration,
+    goal_id: (goalId && goalId !== 'none') ? goalId : null
+  })
+
+  // E. Guard Clause
+  if (!result.success) {
+    console.error("Validation Failed:", result.error.flatten())
+    return { error: result.error.flatten().fieldErrors }
+  }
+
+  // F. Database Insert (Type-Safe)
+  const { error } = await supabase.from('tasks').insert({
     user_id: user.id,
+    title: result.data.title,
+    priority: result.data.priority,
+    start_time: result.data.start_time,
+    duration: result.data.duration,
+    due_date: computedDate, // The computed logic result
+    goal_id: result.data.goal_id,
     is_completed: false,
-    actual_duration: 0,
-
-    // ✅ NEW: Map the extra fields
-    priority, // 'low', 'medium', 'high'
-    start_time: startTime,
-    duration: duration,
-  }
-
-  // 4. Handle Date Logic (Inbox vs Schedule)
-  if (dateType === 'inbox') {
-    taskData.due_date = null
-    taskData.goal_id = null
-  } else if (dateType === 'backlog') {
-    taskData.due_date = null
-    taskData.goal_id = goalId && goalId !== 'none' ? goalId : null
-  } else if (specificDate) {
-    // Normalize date
-    if (/^\d{4}-\d{2}-\d{2}$/.test(specificDate)) {
-      taskData.due_date = specificDate
-    } else {
-      const date = new Date(specificDate)
-      taskData.due_date = date.toISOString().split('T')[0]
-    }
-    taskData.goal_id = goalId && goalId !== 'none' ? goalId : null
-  }
-
-  // 5. Insert
-  const { error } = await supabase.from('tasks').insert(taskData)
+    actual_duration: 0
+  })
 
   if (error) {
-    console.error('Error adding task:', error)
-    return
+    console.error('Database Error:', error)
+    return { error: error.message }
   }
 
   revalidatePath('/')
+  return { success: true }
 }
 
+// ==========================================
+// 2. TOGGLE COMPLETION
+// ==========================================
 export async function toggleTask(taskId: string, isCompleted: boolean) {
   const { supabase, user } = await getUser()
 
+  // Validate inputs simply
+  const idCheck = z.string().uuid().safeParse(taskId)
+  if (!idCheck.success) return
+
   await supabase
     .from('tasks')
-    .update({ is_completed: isCompleted }) // 👈 Save the exact value sent from UI
+    .update({ is_completed: isCompleted })
     .eq('id', taskId)
     .eq('user_id', user.id)
 
   revalidatePath('/')
 }
 
+// ==========================================
+// 3. DELETE TASK
+// ==========================================
 export async function deleteTask(formData: FormData) {
   const { supabase, user } = await getUser()
+  const taskId = formData.get('taskId')
 
-  const taskId = formData.get('taskId') as string
-
-  await supabase.from('tasks').delete().eq('id', taskId).eq('user_id', user.id) // ✅ Ensure user can only delete their own tasks
-
-  revalidatePath('/')
-}
-
-export async function scheduleTask(formData: FormData) {
-  const { supabase, user } = await getUser()
-  const taskId = formData.get('taskId') as string
-  const date = formData.get('date') as string
-
-  if (!taskId || !date) return
-
-  await supabase.from('tasks').update({ due_date: date }).eq('id', taskId).eq('user_id', user.id)
-
-  revalidatePath('/')
-}
-
-export async function updateTask(formData: FormData) {
-  const { supabase, user } = await getUser()
-  const taskId = formData.get('taskId') as string
-  const newTitle = formData.get('title') as string
-
-  if (!taskId || !newTitle) return
-
-  await supabase.from('tasks').update({ title: newTitle }).eq('id', taskId).eq('user_id', user.id)
-
-  revalidatePath('/')
-}
-
-export async function moveTaskToDate(taskId: string, dateStr: string | null) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return
+  const result = z.string().uuid().safeParse(taskId)
+  if (!result.success) return
 
   await supabase
     .from('tasks')
-    .update({ due_date: dateStr }) // Pass null to move back to backlog
+    .delete()
+    .eq('id', result.data)
+    .eq('user_id', user.id)
+
+  revalidatePath('/')
+}
+
+// ==========================================
+// 4. SCHEDULE TASK (Drag & Drop)
+// ==========================================
+export async function scheduleTask(formData: FormData) {
+  const { supabase, user } = await getUser()
+
+  const rawData = {
+    taskId: formData.get('taskId'),
+    date: formData.get('date')
+  }
+
+  const Schema = z.object({
+    taskId: z.string().uuid(),
+    date: z.string().date() // Enforces YYYY-MM-DD
+  })
+
+  const result = Schema.safeParse(rawData)
+  if (!result.success) return
+
+  await supabase
+    .from('tasks')
+    .update({ due_date: result.data.date })
+    .eq('id', result.data.taskId)
+    .eq('user_id', user.id)
+
+  revalidatePath('/')
+}
+
+// ==========================================
+// 5. UPDATE TITLE
+// ==========================================
+export async function updateTask(formData: FormData) {
+  const { supabase, user } = await getUser()
+
+  const Schema = z.object({
+    taskId: z.string().uuid(),
+    title: z.string().min(1).max(100)
+  })
+
+  const result = Schema.safeParse({
+    taskId: formData.get('taskId'),
+    title: formData.get('title')
+  })
+
+  if (!result.success) return
+
+  await supabase
+    .from('tasks')
+    .update({ title: result.data.title })
+    .eq('id', result.data.taskId)
+    .eq('user_id', user.id)
+
+  revalidatePath('/')
+}
+
+// ==========================================
+// 6. MOVE TASK TO DATE (Utility)
+// ==========================================
+export async function moveTaskToDate(taskId: string, dateStr: string | null) {
+  const { supabase, user } = await getUser()
+
+  // Validate ID
+  if (!z.string().uuid().safeParse(taskId).success) return
+  // Validate Date (allow null)
+  if (dateStr && !z.string().date().safeParse(dateStr).success) return
+
+  await supabase
+    .from('tasks')
+    .update({ due_date: dateStr })
     .eq('id', taskId)
     .eq('user_id', user.id)
 
   revalidatePath('/')
 }
 
-export async function scheduleTaskTime(
-  taskId: string,
-  startTime: string | null,
-  duration: number = 60,
-) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return
+// ==========================================
+// 7. TIMEBLOCKING
+// ==========================================
+export async function scheduleTaskTime(taskId: string, startTime: string | null, duration: number = 60) {
+  const { supabase, user } = await getUser()
+
+  const Schema = z.object({
+    taskId: z.string().uuid(),
+    startTime: z.string().nullable(), // Could add regex for HH:MM
+    duration: z.number().min(1)
+  })
+
+  const result = Schema.safeParse({ taskId, startTime, duration })
+  if (!result.success) return
 
   await supabase
     .from('tasks')
     .update({
-      start_time: startTime, // Pass null to remove from timeline (back to dock)
-      duration: duration,
+      start_time: result.data.startTime,
+      duration: result.data.duration,
     })
-    .eq('id', taskId)
+    .eq('id', result.data.taskId)
     .eq('user_id', user.id)
 
   revalidatePath('/')
 }
 
-export async function toggleTimer(taskId: string) {
-  const supabase = await createClient()
+// ==========================================
+// 8. UPDATE PRIORITY (Optimistic UI Action)
+// ==========================================
+export async function updateTaskPriority(taskId: string, priority: string) {
+  const { supabase, user } = await getUser()
 
-  // 1. Get current task status
+  // 1. Validate the Enum using Zod
+  const result = PriorityEnum.safeParse(priority)
+  const idCheck = z.string().uuid().safeParse(taskId)
+
+  if (!result.success || !idCheck.success) {
+    console.error("Invalid Priority/ID")
+    return
+  }
+
+  await supabase
+    .from('tasks')
+    .update({ priority: result.data })
+    .eq('id', taskId)
+    .eq('user_id', user.id) // Security check
+
+  revalidatePath('/dashboard')
+}
+
+// ==========================================
+// 9. UPDATE DESCRIPTION
+// ==========================================
+export async function updateTaskDescription(taskId: string, description: string) {
+  const { supabase, user } = await getUser()
+
+  // Sanitization / Validation
+  const Schema = z.object({
+    taskId: z.string().uuid(),
+    description: z.string().max(5000).optional()
+  })
+
+  const result = Schema.safeParse({ taskId, description })
+  if (!result.success) return
+
+  await supabase
+    .from('tasks')
+    .update({ description: result.data.description })
+    .eq('id', result.data.taskId)
+    .eq('user_id', user.id)
+
+  revalidatePath('/dashboard')
+}
+
+// ==========================================
+// 10. TIMER LOGIC (Complex)
+// ==========================================
+export async function toggleTimer(taskId: string) {
+  const { supabase } = await getUser() // Ensures auth
+
+  if (!z.string().uuid().safeParse(taskId).success) return
+
   const { data: task } = await supabase
     .from('tasks')
     .select('last_started_at, actual_duration')
@@ -174,7 +294,7 @@ export async function toggleTimer(taskId: string) {
   const now = new Date()
 
   if (task.last_started_at) {
-    // STOPPING: Calculate session duration in minutes
+    // STOPPING
     const startTime = new Date(task.last_started_at)
     const sessionMinutes = Math.floor((now.getTime() - startTime.getTime()) / 60000)
     const newTotal = (task.actual_duration || 0) + sessionMinutes
@@ -187,39 +307,26 @@ export async function toggleTimer(taskId: string) {
       })
       .eq('id', taskId)
   } else {
-    // STARTING: Set timestamp
-    await supabase.from('tasks').update({ last_started_at: now.toISOString() }).eq('id', taskId)
+    // STARTING
+    await supabase
+      .from('tasks')
+      .update({ last_started_at: now.toISOString() })
+      .eq('id', taskId)
   }
 
   revalidatePath('/dashboard')
 }
 
 export async function updateTaskDuration(taskId: string, duration: number) {
-  const supabase = await createClient()
+  const { supabase } = await getUser()
 
-  const { error } = await supabase.from('tasks').update({ duration }).eq('id', taskId)
+  const result = z.object({
+    taskId: z.string().uuid(),
+    duration: z.number().min(1)
+  }).safeParse({ taskId, duration })
 
-  if (error) {
-    console.error('Error updating task duration:', error)
-    return
-  }
+  if (!result.success) return
 
-  revalidatePath('/dashboard')
-}
-
-export async function updateTaskDescription(taskId: string, description: string) {
-  const supabase = await createClient()
-
-  await supabase
-    .from('tasks')
-    .update({ description })
-    .eq('id', taskId)
-
-  revalidatePath('/dashboard')
-}
-
-export async function updateTaskPriority(taskId: string, priority: string) {
-  const supabase = await createClient()
-  await supabase.from('tasks').update({ priority }).eq('id', taskId)
+  await supabase.from('tasks').update({ duration: result.data.duration }).eq('id', result.data.taskId)
   revalidatePath('/dashboard')
 }
