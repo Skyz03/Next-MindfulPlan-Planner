@@ -1,6 +1,6 @@
-import { login, signup } from '@/src/features/auth/actions'
+import { login, signup } from '@/features/auth/actions'
 import { FormMessage } from './form-message'
-import { AuthSubmitButton } from '@/src/features/auth/components/AuthSubmitButton' // Import new button
+import { AuthSubmitButton } from '@/features/auth/components/AuthSubmitButton' // Import new button
 import Link from 'next/link'
 import { Suspense } from 'react'
 
