@@ -282,10 +282,10 @@ function TimeGridTaskCard({ task, isDone, isRunning, height, topPosition, unsche
     >
       <div
         className={`group/card flex h-full flex-col justify-between rounded-xl border p-3 text-xs shadow-sm transition-all hover:z-30 hover:scale-[1.01] overflow-hidden ${isDone
-            ? 'border-stone-200 bg-stone-50 opacity-60 dark:bg-stone-800'
-            : isRunning
-              ? 'z-20 border-orange-500 bg-white shadow-lg ring-1 shadow-orange-500/10 ring-orange-500/20 dark:bg-[#262626]'
-              : 'border-stone-200 bg-white hover:border-orange-300 dark:border-stone-700 dark:bg-[#262626]'
+          ? 'border-stone-200 bg-stone-50 opacity-60 dark:bg-stone-800'
+          : isRunning
+            ? 'z-20 border-orange-500 bg-white shadow-lg ring-1 shadow-orange-500/10 ring-orange-500/20 dark:bg-[#262626]'
+            : 'border-stone-200 bg-white hover:border-orange-300 dark:border-stone-700 dark:bg-[#262626]'
           } `}
       >
         {/* TOP ROW */}
@@ -348,8 +348,8 @@ function TimeGridTaskCard({ task, isDone, isRunning, height, topPosition, unsche
               handleToggle(task.id, isDone)
             }}
             className={`flex h-6 md:h-7 items-center gap-1.5 rounded-md border px-2 md:px-3 text-[10px] md:text-xs font-bold transition-all ${isDone
-                ? 'border-green-200 bg-green-100 text-green-700 hover:bg-green-200'
-                : 'border-stone-200 bg-white text-stone-600 hover:border-green-500 hover:text-green-600'
+              ? 'border-green-200 bg-green-100 text-green-700 hover:bg-green-200'
+              : 'border-stone-200 bg-white text-stone-600 hover:border-green-500 hover:text-green-600'
               }`}
           >
             {isDone ? <span>Done</span> : <span>Check</span>}
@@ -366,6 +366,7 @@ function TaskNoteModal({ task, onClose }: { task: Task, onClose: () => void }) {
   const [desc, setDesc] = useState(task.description || '')
 
   const handleSave = () => {
+    if (!task.id) return
     updateTaskDescription(task.id, desc)
     onClose()
   }
