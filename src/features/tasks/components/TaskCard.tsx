@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { GripVertical, X, CheckCircle2, Circle, FileText, ChevronDown } from 'lucide-react'
-import { updateTaskDescription, updateTaskPriority } from '@/features/tasks/actions'
-import PriorityBadge from '@/features/tasks/components/PriorityBadge'
+import { useState, useEffect, useRef } from 'react'
+import { GripVertical, Check, Trash2, FileText, Pencil } from 'lucide-react'
+import { updateTaskDescription, updateTaskPriority, updateTask } from '@/features/tasks/actions'
 import PrioritySelect from '@/features/tasks/components/PrioritySelect'
 import { Task } from '@/types'
 
@@ -11,7 +10,6 @@ interface TaskCardProps {
     task: Task
     isDragging?: boolean
     showDragHandle?: boolean
-    showStatusBadge?: boolean
     onToggle?: () => void
     onRemove?: () => void
     dragRef?: (node: HTMLElement | null) => void
@@ -24,7 +22,6 @@ export default function TaskCard({
     task,
     isDragging,
     showDragHandle = true,
-    showStatusBadge = false,
     onToggle,
     onRemove,
     dragRef,
@@ -33,132 +30,173 @@ export default function TaskCard({
     className = ''
 }: TaskCardProps) {
     const [isExpanded, setIsExpanded] = useState(false)
-
-    // Safety: Default to 'low' if priority is missing
+    const [isEditingTitle, setIsEditingTitle] = useState(false)
+    const [title, setTitle] = useState(task?.title || '')
+    const [isCompleted, setIsCompleted] = useState(task?.is_completed || false)
     const [priority, setPriority] = useState(task?.priority || 'low')
 
-    // Sync state when data loads
-    useEffect(() => {
-        if (task?.priority) {
-            setPriority(task.priority)
-        }
-    }, [task?.priority])
+    const inputRef = useRef<HTMLInputElement>(null)
 
-    // Safety Guard: Don't render if task is totally broken
+    // Sync state
+    useEffect(() => {
+        if (task) {
+            setPriority(task.priority)
+            setTitle(task.title)
+            setIsCompleted(task.is_completed)
+        }
+    }, [task])
+
+    useEffect(() => {
+        if (isEditingTitle && inputRef.current) {
+            inputRef.current.focus()
+        }
+    }, [isEditingTitle])
+
     if (!task) return null
 
-    const handlePriorityChange = (val: 'low' | 'medium' | 'high') => {
-        // ✅ GUARD CLAUSE: Stop if ID is missing
-        if (!task.id) return
+    // 1. Priority Colors (The "Stripe")
+    const priorityStyles = {
+        high: 'border-l-rose-500 bg-rose-50/10 hover:bg-rose-50/20',
+        medium: 'border-l-orange-400 bg-orange-50/5 hover:bg-orange-50/10',
+        low: 'border-l-stone-300 bg-white hover:bg-stone-50 dark:bg-stone-900/40 dark:hover:bg-stone-800'
+    }[priority] || 'border-l-stone-300'
 
+    // 2. Handlers
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setIsCompleted(!isCompleted)
+        onToggle?.()
+    }
+
+    const handleTitleSave = async () => {
+        setIsEditingTitle(false)
+        if (title.trim() === '' || title === task.title || !task.id) {
+            setTitle(task.title)
+            return
+        }
+        const formData = new FormData()
+        formData.append('taskId', task.id)
+        formData.append('title', title)
+        await updateTask(formData)
+    }
+
+    const handlePriorityChange = (val: 'low' | 'medium' | 'high') => {
+        if (!task.id) return
         setPriority(val)
         updateTaskPriority(task.id, val)
     }
 
-    const borderColor = isDragging
-        ? 'border-stone-300 bg-white opacity-90 rotate-2 shadow-2xl'
-        : isExpanded
-            ? 'border-orange-300 shadow-md ring-1 ring-orange-100 bg-white dark:border-orange-800'
-            : priority === 'high'
-                ? 'border-rose-200 bg-rose-50/40 dark:border-rose-900/30 dark:bg-rose-900/10'
-                : priority === 'medium'
-                    ? 'border-orange-200 bg-orange-50/40 dark:border-orange-900/30 dark:bg-orange-900/10'
-                    : 'border-stone-200 bg-white dark:border-stone-800 dark:bg-[#262626]'
-
-    const isScheduled = !!task.date || !!task.start_time
-
     return (
         <div
             ref={dragRef}
-            style={isDragging ? { zIndex: 999, position: 'relative' } : undefined}
-            className={`group relative mb-2 rounded-lg border transition-all ${borderColor} ${className}`}
+            // 3. The "Ghost" Container
+            className={`
+                group relative mb-2 flex flex-col rounded-r-md border-l-[3px] shadow-sm transition-all duration-200
+                ${priorityStyles}
+                ${isDragging ? 'z-50 scale-105 shadow-2xl rotate-1 opacity-90' : ''}
+                ${isCompleted ? 'opacity-60' : 'opacity-100'}
+                ${className}
+            `}
+            style={isDragging ? { zIndex: 999 } : undefined}
         >
-            <div className="flex items-center gap-2 p-3">
+            {/* MAIN ROW */}
+            <div className="flex items-center gap-3 p-3">
+
+                {/* A. GHOST DRAG HANDLE (Visible on Group Hover) */}
                 {showDragHandle && (
-                    <button
+                    <div
                         {...dragListeners}
                         {...dragAttributes}
-                        className="cursor-grab text-stone-300 hover:text-stone-600 active:cursor-grabbing dark:text-stone-600 dark:hover:text-stone-400"
+                        className="cursor-grab text-stone-300 opacity-0 transition-opacity hover:text-stone-600 group-hover:opacity-100 dark:hover:text-stone-400"
                     >
                         <GripVertical className="h-4 w-4" />
-                    </button>
+                    </div>
                 )}
 
+                {/* B. MINIMAL CHECKBOX */}
                 <button
-                    onClick={(e) => { e.stopPropagation(); onToggle?.() }}
-                    className="text-stone-300 transition-colors hover:text-emerald-500"
+                    onClick={handleToggle}
+                    className={`
+                        flex h-5 w-5 items-center justify-center rounded-md border transition-all
+                        ${isCompleted
+                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                            : 'bg-transparent border-stone-300 hover:border-emerald-400 dark:border-stone-600'
+                        }
+                    `}
                 >
-                    {task.is_completed ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    ) : (
-                        <Circle className="h-4 w-4" />
-                    )}
+                    {isCompleted && <Check className="h-3.5 w-3.5 stroke-[3]" />}
                 </button>
 
-                <div
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="flex flex-1 cursor-pointer items-center gap-2 min-w-0"
-                >
-                    <span className={`text-xs md:text-sm font-medium truncate ${task.is_completed ? 'text-stone-400 line-through' : 'text-stone-700 dark:text-stone-200'}`}>
-                        {task.title}
-                    </span>
-                    <PriorityBadge priority={priority} />
-                    {task.description && <FileText className="h-3 w-3 flex-shrink-0 text-stone-400" />}
+                {/* C. TITLE & EXPAND TRIGGER */}
+                <div className="flex flex-1 items-center gap-2 min-w-0">
+                    {isEditingTitle ? (
+                        <input
+                            ref={inputRef}
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            onBlur={handleTitleSave}
+                            onKeyDown={(e) => e.key === 'Enter' && handleTitleSave()}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full bg-transparent text-sm font-medium text-stone-900 outline-none placeholder:text-stone-400 dark:text-stone-100"
+                        />
+                    ) : (
+                        <span
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className={`
+                                flex-1 cursor-pointer truncate text-sm font-medium transition-colors hover:text-orange-600
+                                ${isCompleted ? 'text-stone-400 line-through decoration-stone-400' : 'text-stone-700 dark:text-stone-200'}
+                            `}
+                        >
+                            {title}
+                        </span>
+                    )}
+
+                    {/* Tiny Note Indicator */}
+                    {task.description && !isExpanded && (
+                        <FileText className="h-3 w-3 text-stone-400" />
+                    )}
                 </div>
 
-                {showStatusBadge && !task.is_completed && (
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap hidden md:inline-block ${isScheduled
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                        : 'bg-stone-100 text-stone-400 dark:bg-stone-800'
-                        }`}>
-                        {isScheduled ? 'Scheduled' : 'Backlog'}
-                    </span>
-                )}
-
-                {onRemove && (
+                {/* D. GHOST ACTIONS (Edit / Delete) */}
+                <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
-                        onClick={(e) => { e.stopPropagation(); onRemove() }}
-                        className="opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+                        onClick={(e) => { e.stopPropagation(); setIsEditingTitle(true) }}
+                        className="rounded p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800"
                     >
-                        <X className="h-4 w-4" />
+                        <Pencil className="h-3.5 w-3.5" />
                     </button>
-                )}
 
-                <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className={`text-stone-300 hover:text-stone-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                >
-                    <ChevronDown className="h-4 w-4" />
-                </button>
+                    {onRemove && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onRemove() }}
+                            className="rounded p-1 text-stone-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                </div>
             </div>
 
+            {/* EXPANDED DETAILS (Animated) */}
             {isExpanded && (
-                <div className="border-t border-stone-100 bg-stone-50/50 p-3 dark:border-stone-800 dark:bg-black/20 animate-in slide-in-from-top-1">
-                    <div className="mb-3 flex items-center justify-between border-b border-stone-100 pb-2 dark:border-stone-800">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Priority Level</span>
-                        <PrioritySelect
-                            value={priority}
-                            onChange={handlePriorityChange}
-                        />
+                <div className="border-t border-stone-100/50 bg-black/5 px-4 pb-4 pt-2 animate-in slide-in-from-top-1 dark:border-white/5">
+
+                    {/* Priority Selector Row */}
+                    <div className="mb-3 flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Priority</span>
+                        <PrioritySelect value={priority} onChange={handlePriorityChange} />
                     </div>
 
+                    {/* Notes Area */}
                     <textarea
-                        autoFocus
                         defaultValue={task.description ?? ''}
-                        placeholder="Add notes, results, or learnings..."
+                        placeholder="Add details..."
                         onBlur={(e) => {
-                            // ✅ FIX IS HERE: We check if ID exists before sending
-                            if (task.id) {
-                                updateTaskDescription(task.id, e.target.value || '')
-                            }
+                            if (task.id) updateTaskDescription(task.id, e.target.value || '')
                         }}
                         onPointerDown={(e) => e.stopPropagation()}
-                        className="w-full resize-none rounded-md bg-transparent text-xs leading-relaxed text-stone-600 placeholder:text-stone-400 focus:outline-none dark:text-stone-300"
-                        rows={3}
+                        className="min-h-[60px] w-full resize-none rounded-md bg-transparent text-xs leading-relaxed text-stone-600 placeholder:text-stone-400 focus:outline-none dark:text-stone-300"
                     />
-                    <div className="mt-1 flex justify-end">
-                        <span className="text-[9px] text-stone-400">Auto-saved</span>
-                    </div>
                 </div>
             )}
         </div>

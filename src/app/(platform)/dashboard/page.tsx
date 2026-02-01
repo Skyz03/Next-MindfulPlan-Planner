@@ -192,7 +192,7 @@ export default async function Dashboard({
           className="flex items-center justify-between rounded-xl bg-orange-500/10 p-3 text-sm font-bold text-orange-600 transition-colors hover:bg-orange-500/20 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-800/30"
           title="Weekly Reflection"
         >
-          <span>Start Weekly Reflection</span>
+          <span>Review</span>
           <svg
             width="18"
             height="18"
@@ -504,7 +504,7 @@ export default async function Dashboard({
               </div>
             </div>
           )}
-        <ReviewTrigger data={reviewData} weekStart={startOfWeek} nextMonday={nextMondayStr} />
+        {/* <ReviewTrigger data={reviewData} weekStart={startOfWeek} nextMonday={nextMondayStr} /> */}
       </DashboardShell>
     </PlannerBoard>
   )

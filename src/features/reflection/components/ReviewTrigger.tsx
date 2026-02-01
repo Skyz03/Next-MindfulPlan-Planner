@@ -31,7 +31,7 @@ export default function ReviewTrigger({
         className="animate-bounce-slow fixed right-4 bottom-20 z-50 flex items-center gap-2 rounded-full bg-stone-900 px-4 py-2.5 text-sm font-bold text-white shadow-2xl transition-transform hover:scale-105 active:scale-95 md:right-6 md:bottom-6 md:px-5 md:py-3 md:text-base dark:bg-white dark:text-stone-900"
       >
         <span>✨</span>
-        <span>Start Weekly Review</span>
+        <span>Review</span>
       </button>
 
       <WeeklyReviewModal
