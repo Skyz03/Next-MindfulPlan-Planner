@@ -8,8 +8,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' })
 
 export const metadata: Metadata = {
-  title: 'Next Planner App',
-  description: 'A simple task manager app built with Next.js and Supabase',
+  title: 'Architect Studio',
+  description: 'A modern, data-driven lifestyle planner built with Next.js and Supabase',
 }
 
 export default function RootLayout({

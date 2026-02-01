@@ -1,12 +1,9 @@
-<!-- Task Card Title Not Editable -->
 <!-- Too Much Happening in the Plan Mode  -->
 <!-- Too Much Unnessary features in the Focus mode too i.e. Timer -> Remove that with make log better -->
 <!-- Updates in the Navigation  -->
 <!-- Changing from the Toyota to Proshe  -->
 <!-- Stratergy section is too much flair -> Change into minimalism  -->
 
-
-<!-- Implement the use of npm install zod cmdk -->
 <!-- npm install clsx tailwind-merge  -->
 <!-- Implement the command Pallete  -->
 
