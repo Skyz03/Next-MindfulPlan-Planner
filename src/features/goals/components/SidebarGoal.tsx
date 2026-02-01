@@ -11,6 +11,7 @@ import DurationInput from '@/core/ui/DurationInput'
 import PriorityBadge from '@/features/tasks/components/PriorityBadge'
 import PrioritySelect from '@/features/tasks/components/PrioritySelect'
 import TaskCard from '@/features/tasks/components/TaskCard'
+import { Task } from '@/types'
 
 export default function SidebarGoal({ goal }: { goal: any }) {
   const [isExpanded, setIsExpanded] = useState(false)
@@ -77,14 +78,22 @@ export default function SidebarGoal({ goal }: { goal: any }) {
             </div>
           )}
 
-          {goal.steps.map((task: any) => (
+          {goal.steps.map((task: Task) => (
             <SidebarTaskItem key={task.id} task={task} />
           ))}
 
           {/* ADD STEP FORM */}
           {/* ✅ FIXED: Added relative z-[100] so popup renders ON TOP of next goal */}
           <form
-            action={addTask}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              // create a FormData from this form node
+              const form = e.currentTarget;
+              const formData = new FormData(form);
+              // await returned promise, but ignore data, since we're not handling errors here
+              await addTask(formData);
+              // optionally clear form fields here if desired
+            }}
             className="group/add relative z-[100] mt-2 opacity-100 transition-opacity hover:opacity-100 md:opacity-60"
           >
             <input type="hidden" name="date_type" value="backlog" />
@@ -127,7 +136,7 @@ export default function SidebarGoal({ goal }: { goal: any }) {
   )
 }
 
-function SidebarTaskItem({ task }: { task: any }) {
+function SidebarTaskItem({ task }: { task: Task }) {
   // Use Draggable (Clone behavior) instead of Sortable
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `sidebar-${task.id}`,

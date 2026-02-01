@@ -1,5 +1,6 @@
 'use client'
 
+import { Task } from '@/types'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -9,7 +10,7 @@ export default function DraggableTask({
   className,
   style: propStyle,
 }: {
-  task: any
+  task: Task
   children: React.ReactNode
   className?: string
   style?: React.CSSProperties

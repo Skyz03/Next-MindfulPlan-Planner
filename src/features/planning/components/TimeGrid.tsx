@@ -7,6 +7,7 @@ import { scheduleTaskTime, toggleTask, updateTaskDuration, updateTaskDescription
 import TaskTimer from './TaskTimer'
 import DurationInput from '@/core/ui/DurationInput'
 import { FileText, X, Clock, Calendar } from 'lucide-react'
+import { Task } from '@/types'
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5) // 5 AM to 10 PM
 const PIXELS_PER_HOUR = 140
@@ -360,7 +361,7 @@ function TimeGridTaskCard({ task, isDone, isRunning, height, topPosition, unsche
 }
 
 // 🆕 THE POPUP COMPONENT
-function TaskNoteModal({ task, onClose }: { task: any, onClose: () => void }) {
+function TaskNoteModal({ task, onClose }: { task: Task, onClose: () => void }) {
   // Local state for the textarea value
   const [desc, setDesc] = useState(task.description || '')
 

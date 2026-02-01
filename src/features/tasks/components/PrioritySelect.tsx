@@ -3,22 +3,36 @@
 import { useState } from 'react'
 import { Check, ChevronDown, SignalHigh, SignalMedium, SignalLow } from 'lucide-react'
 
-type Priority = 'low' | 'medium' | 'high'
+// 1. DEFINE THE STRICT TYPE (The Contract)
+export type PriorityLevel = 'low' | 'medium' | 'high'
 
-const PRIORITIES = [
-    { value: 'high', label: 'Critical', icon: SignalHigh, color: 'text-rose-600 bg-rose-50 border-rose-200', desc: 'Must be done today' },
-    { value: 'medium', label: 'Standard', icon: SignalMedium, color: 'text-orange-600 bg-orange-50 border-orange-200', desc: 'Important but flexible' },
-    { value: 'low', label: 'Low', icon: SignalLow, color: 'text-stone-500 bg-stone-100 border-stone-200', desc: 'Can wait' },
-]
+// 2. TYPE THE CONSTANT
+// We tell TypeScript: "These values are NOT just strings. They are PriorityLevels."
+const PRIORITIES: {
+    value: PriorityLevel,
+    label: string,
+    icon: any,
+    color: string,
+    desc: string
+}[] = [
+        { value: 'high', label: 'Critical', icon: SignalHigh, color: 'text-rose-600 bg-rose-50 border-rose-200', desc: 'Must be done today' },
+        { value: 'medium', label: 'Standard', icon: SignalMedium, color: 'text-orange-600 bg-orange-50 border-orange-200', desc: 'Important but flexible' },
+        { value: 'low', label: 'Low', icon: SignalLow, color: 'text-stone-500 bg-stone-100 border-stone-200', desc: 'Can wait' },
+    ]
+
+// 3. DEFINE PROPS
+interface PrioritySelectProps {
+    value: string // Input can be string (handling potentially loose incoming data)
+    onChange: (val: PriorityLevel) => void // 👈 OUTPUT MUST BE STRICT
+}
 
 export default function PrioritySelect({
     value,
     onChange
-}: {
-    value: string;
-    onChange: (val: string) => void
-}) {
+}: PrioritySelectProps) {
     const [isOpen, setIsOpen] = useState(false)
+
+    // Fallback to 'low' (index 2) if value doesn't match
     const current = PRIORITIES.find(p => p.value === value) || PRIORITIES[2]
 
     return (
@@ -33,7 +47,9 @@ export default function PrioritySelect({
 
             {isOpen && (
                 <>
+                    {/* Backdrop to close when clicking outside */}
                     <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+
                     <div className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-xl dark:border-stone-800 dark:bg-[#1C1917] animate-in fade-in zoom-in-95">
                         <div className="bg-stone-50 p-2 text-[10px] font-bold uppercase tracking-widest text-stone-400 dark:bg-stone-900">
                             Select Priority
@@ -42,8 +58,9 @@ export default function PrioritySelect({
                             {PRIORITIES.map((p) => (
                                 <button
                                     key={p.value}
-                                    onClick={() => {
-                                        onChange(p.value)
+                                    onClick={(e) => {
+                                        e.stopPropagation() // Prevent bubbling
+                                        onChange(p.value) // This is now Type-Safe
                                         setIsOpen(false)
                                     }}
                                     className={`group flex w-full items-start gap-3 rounded-lg p-2 text-left transition-colors hover:bg-stone-50 dark:hover:bg-stone-800 ${value === p.value ? 'bg-stone-50 dark:bg-stone-800' : ''}`}
