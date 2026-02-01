@@ -4,17 +4,23 @@ import { createClient } from '@/core/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { TaskSchema, PriorityEnum } from './schema' // Import your new laws
+import {
+  TaskSchema,
+  TaskIdSchema,
+  ScheduleTaskSchema,
+  TimeBlockSchema,
+  UpdateTitleSchema,
+  PriorityEnum
+} from './schema'
 
 // --- HELPER: PROTECTED USER ---
 async function getUser() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   if (!user) redirect('/login')
-
   return { supabase, user }
 }
+
 
 // ==========================================
 // 1. ADD TASK (Fully Validated)
@@ -131,18 +137,16 @@ export async function deleteTask(formData: FormData) {
 export async function scheduleTask(formData: FormData) {
   const { supabase, user } = await getUser()
 
-  const rawData = {
+  // 1. Use the shared Schema
+  const result = ScheduleTaskSchema.safeParse({
     taskId: formData.get('taskId'),
     date: formData.get('date')
-  }
-
-  const Schema = z.object({
-    taskId: z.string().uuid(),
-    date: z.string().date() // Enforces YYYY-MM-DD
   })
 
-  const result = Schema.safeParse(rawData)
-  if (!result.success) return
+  if (!result.success) {
+    console.error("Schedule Error:", result.error.flatten())
+    return
+  }
 
   await supabase
     .from('tasks')
@@ -159,12 +163,7 @@ export async function scheduleTask(formData: FormData) {
 export async function updateTask(formData: FormData) {
   const { supabase, user } = await getUser()
 
-  const Schema = z.object({
-    taskId: z.string().uuid(),
-    title: z.string().min(1).max(100)
-  })
-
-  const result = Schema.safeParse({
+  const result = UpdateTitleSchema.safeParse({
     taskId: formData.get('taskId'),
     title: formData.get('title')
   })
@@ -179,7 +178,6 @@ export async function updateTask(formData: FormData) {
 
   revalidatePath('/')
 }
-
 // ==========================================
 // 6. MOVE TASK TO DATE (Utility)
 // ==========================================
@@ -206,13 +204,9 @@ export async function moveTaskToDate(taskId: string, dateStr: string | null) {
 export async function scheduleTaskTime(taskId: string, startTime: string | null, duration: number = 60) {
   const { supabase, user } = await getUser()
 
-  const Schema = z.object({
-    taskId: z.string().uuid(),
-    startTime: z.string().nullable(), // Could add regex for HH:MM
-    duration: z.number().min(1)
-  })
+  // Validate arguments directly
+  const result = TimeBlockSchema.safeParse({ taskId, startTime, duration })
 
-  const result = Schema.safeParse({ taskId, startTime, duration })
   if (!result.success) return
 
   await supabase
@@ -226,7 +220,6 @@ export async function scheduleTaskTime(taskId: string, startTime: string | null,
 
   revalidatePath('/')
 }
-
 // ==========================================
 // 8. UPDATE PRIORITY (Optimistic UI Action)
 // ==========================================
@@ -281,7 +274,9 @@ export async function updateTaskDescription(taskId: string, description: string)
 export async function toggleTimer(taskId: string) {
   const { supabase } = await getUser() // Ensures auth
 
-  if (!z.string().uuid().safeParse(taskId).success) return
+  // Use the Reusable Atom
+  const idCheck = TaskIdSchema.safeParse(taskId)
+  if (!idCheck.success) return
 
   const { data: task } = await supabase
     .from('tasks')
