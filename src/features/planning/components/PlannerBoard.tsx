@@ -2,7 +2,8 @@
 
 import { DndContext, DragEndEvent, useSensors, useSensor, PointerSensor } from '@dnd-kit/core'
 import { moveTaskToDate, scheduleTaskTime } from '@/features/tasks/actions'
-import { useTransition, useId } from 'react' // <--- 1. Import useId
+import { useTransition, useId } from 'react'
+import NorthStarHeader from "@/features/strategy/components/NorthStarHeader";
 
 export default function PlannerBoard({ children }: { children: React.ReactNode }) {
   const [isPending, startTransition] = useTransition()
