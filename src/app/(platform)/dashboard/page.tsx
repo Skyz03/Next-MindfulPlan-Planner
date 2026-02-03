@@ -18,6 +18,7 @@ import OnboardingTour from '@/features/onboarding/components/OnboardingTour'
 import BlueprintModal from '@/features/planning/components/BlueprintModal'
 import StrategyDashboard from '@/features/strategy/components/StrategyDashboard'
 import ViewToggle from '@/core/ui/ViewToggle'
+import { ChevronLeft, ChevronRight, RotateCcw, Calendar } from 'lucide-react'
 
 export default async function Dashboard({
   searchParams,
@@ -333,65 +334,58 @@ export default async function Dashboard({
           className="relative z-40 flex h-16 items-center justify-between border-b border-stone-200 bg-[#FAFAF9] px-4 transition-colors duration-500 md:px-8 md:pl-16 dark:border-stone-800 dark:bg-[#1C1917]"
         >
           {/* LEFT: Title & Date Nav */}
-          <div className="flex items-center gap-3 pl-8 md:gap-6 md:pl-0">
-            {' '}
-            {/* pl-8 allows space for mobile hamburger */}
-            {/* ✅ RESPONSIVE: Hide Title on Mobile */}
-            <h1 className="hidden font-serif text-lg font-bold text-stone-900 md:block dark:text-stone-100">
-              {viewMode === 'plan' ? 'Weekly' : 'Daily '}
+          {/* 1. TITLE (Serif & Bold) */}
+          <div className="flex items-center gap-3 pl-12 md:gap-6 md:pl-0">
+            <h1 className="hidden font-serif text-2xl font-bold tracking-tight text-stone-900 md:block dark:text-stone-100">
+              {viewMode === 'plan' ? 'Weekly Rituals' : 'Daily Focus'}
             </h1>
-            {/* DATE NAVIGATION */}
-            <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-100 p-1 shadow-sm md:gap-3 md:pr-4 dark:border-stone-800/50 dark:bg-stone-800/50">
-              <div className="flex items-center gap-0.5">
-                <Link
-                  href={`/dashboard?date=${formatDate(prevWeek)}&view=${viewMode}`}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition-all hover:bg-white hover:text-stone-600 dark:hover:bg-stone-700 dark:hover:text-stone-200"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                  </svg>
-                </Link>
-                {/* ✅ RESPONSIVE: 'Today' button is smaller on mobile if needed, or consistent */}
-                <Link
-                  href={`/dashboard?date=${todayStr}&view=${viewMode}`}
-                  className={`flex h-7 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${normalizedDateStr === todayStr ? 'cursor-default bg-white text-stone-800 shadow-sm dark:bg-stone-700 dark:text-stone-100' : 'text-orange-500 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-900/20'}`}
-                >
-                  Today
-                </Link>
-                <Link
-                  href={`/dashboard?date=${formatDate(nextWeek)}&view=${viewMode}`}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-400 transition-all hover:bg-white hover:text-stone-600 dark:hover:bg-stone-700 dark:hover:text-stone-200"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </Link>
 
+            {/* 2. NAVIGATION PILL */}
+            <div className="group flex items-center rounded-full border border-stone-200 bg-white p-1 shadow-sm transition-all hover:shadow-md dark:border-stone-800 dark:bg-[#1C1917]">
+
+              {/* Previous Arrow */}
+              <Link
+                href={`/dashboard?date=${formatDate(prevWeek)}&view=${viewMode}`}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                title="Previous Week"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Link>
+
+              {/* Today Button (Action Badge) */}
+              <Link
+                href={`/dashboard?date=${todayStr}&view=${viewMode}`}
+                className={`
+        mx-1 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all
+        ${normalizedDateStr === todayStr
+                    ? 'cursor-default bg-stone-100 text-stone-400 dark:bg-stone-800 dark:text-stone-500' // Inactive state
+                    : 'bg-orange-500 text-white shadow-md hover:bg-orange-600 hover:shadow-lg dark:shadow-none' // Active action
+                  }
+      `}
+              >
+                {normalizedDateStr !== todayStr && <RotateCcw className="h-3 w-3" />}
+                <span>Today</span>
+              </Link>
+
+              {/* Next Arrow */}
+              <Link
+                href={`/dashboard?date=${formatDate(nextWeek)}&view=${viewMode}`}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-stone-800 dark:hover:text-stone-200"
+                title="Next Week"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+
+              {/* Divider */}
+              <div className="mx-1 h-4 w-px bg-stone-200 dark:bg-stone-800"></div>
+
+              {/* Date Range Display */}
+              <div className="hidden items-center gap-2 px-3 sm:flex">
+                <Calendar className="h-3.5 w-3.5 text-stone-400" />
+                <span className="font-mono text-xs font-medium tracking-widest text-stone-600 uppercase dark:text-stone-400">
+                  {dateRangeText}
+                </span>
               </div>
-
-              {/* ✅ RESPONSIVE: Hide Date Text Range on Mobile (Compact Mode) */}
-              <div className="hidden h-4 w-px bg-stone-300 sm:block dark:bg-stone-700"></div>
-              <span className="hidden font-mono text-xs font-medium tracking-tight text-stone-500 uppercase sm:block dark:text-stone-400">
-                {dateRangeText}
-              </span>
             </div>
           </div>
 
