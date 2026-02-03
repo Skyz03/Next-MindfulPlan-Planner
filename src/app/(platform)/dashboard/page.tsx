@@ -18,7 +18,7 @@ import OnboardingTour from '@/features/onboarding/components/OnboardingTour'
 import BlueprintModal from '@/features/planning/components/BlueprintModal'
 import StrategyDashboard from '@/features/strategy/components/StrategyDashboard'
 import ViewToggle from '@/core/ui/ViewToggle'
-import { ChevronLeft, ChevronRight, RotateCcw, Calendar } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RotateCcw, Calendar, Plus, LogOut, BookOpen, Inbox, XIcon } from 'lucide-react'
 
 export default async function Dashboard({
   searchParams,
@@ -146,177 +146,138 @@ export default async function Dashboard({
   const sidebarContent = (
     <DroppableDay
       dateStr={null}
-      className="flex h-full w-full flex-col border-r border-stone-200 bg-[#F5F5F4] font-sans transition-colors duration-500 dark:border-stone-800 dark:bg-[#18181b]"
+      className="flex h-full w-full flex-col border-r border-stone-200 bg-[#FAFAF9] px-6 py-8 font-sans transition-colors duration-500 dark:border-stone-800 dark:bg-[#111]"
     >
-      {/* 1. HEADER & CONTROLS BLOCK */}
-      <div className="flex flex-col px-6 pt-8 pb-4 pl-8">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="font-serif text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-50">
-              Rituals
-            </h2>
-            <p className="text-xs font-medium text-stone-500 dark:text-stone-400">
-              Design your week.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 rounded-full bg-stone-200/50 p-1 dark:bg-stone-800/50">
-            <ThemeToggle />
-            <div className="h-4 w-px bg-stone-300 dark:bg-stone-700"></div>
-            <form action={signOut}>
-              <button
-                className="rounded-full p-1.5 text-stone-400 transition-colors hover:bg-white hover:text-stone-700 dark:hover:bg-stone-700 dark:hover:text-stone-200"
-                title="Sign Out"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                  <polyline points="16 17 21 12 16 7"></polyline>
-                  <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-              </button>
-            </form>
-          </div>
+      {/* 1. HEADER: Editorial Style */}
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="font-serif text-2xl font-bold tracking-tight text-stone-900 dark:text-white">
+            Rituals
+          </h1>
+          <p className="text-xs font-medium text-stone-400">Design your week.</p>
         </div>
 
-        <Link
-          href="/reflection"
-          id="tour-reflection"
-          className="flex items-center justify-between rounded-xl bg-orange-500/10 p-3 text-sm font-bold text-orange-600 transition-colors hover:bg-orange-500/20 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-800/30"
-          title="Weekly Reflection"
-        >
-          <span>Review</span>
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-        </Link>
-
-        <div className="pt-6">
-          <hr className="border-stone-200 dark:border-stone-800" />
+        {/* Subtle Controls (Theme / Sign Out) */}
+        <div className="flex items-center gap-1 opacity-40 transition-opacity hover:opacity-100">
+          <ThemeToggle />
+          <form action={signOut}>
+            <button
+              className="rounded-full p-1.5 transition-colors hover:bg-stone-200 dark:hover:bg-stone-800"
+              title="Sign Out"
+            >
+              <LogOut className="h-4 w-4 text-stone-600 dark:text-stone-400" />
+            </button>
+          </form>
         </div>
       </div>
 
+      {/* 2. MAIN ACTION (Review) - Replaced heavy box with clean link */}
+      <Link
+        href="/reflection"
+        id="tour-reflection"
+        className="group mb-8 flex items-center justify-between border-b border-stone-200 pb-2 text-sm font-medium text-stone-600 transition-all hover:text-orange-600 dark:border-stone-800 dark:text-stone-400 dark:hover:text-orange-500"
+      >
+        <span className="flex items-center gap-2">
+          <BookOpen className="h-4 w-4" />
+          Weekly Review
+        </span>
+        <span className="text-[10px] font-bold opacity-0 transition-opacity group-hover:opacity-100">
+          OPEN ↵
+        </span>
+      </Link>
+
       {/* 3. SCROLLABLE AREA */}
-      <div className="custom-scrollbar flex-1 overflow-y-auto px-4 pb-24">
+      <div className="custom-scrollbar flex-1 overflow-y-auto pr-2 -mr-2">
+
         {/* INBOX SECTION */}
-        <div className="mb-8 px-4" id="tour-inbox">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="text-[11px] font-bold tracking-widest text-stone-400 uppercase">
-              Inbox
+        <div className="mb-8 space-y-3" id="tour-inbox">
+          {/* Minimal Header */}
+          <div className="flex items-center justify-between text-xs font-bold tracking-widest text-stone-400 uppercase">
+            <span className="flex items-center gap-2">
+              <Inbox className="h-3 w-3" /> Inbox
             </span>
-            <span className="rounded-full bg-stone-200 px-1.5 text-[10px] text-stone-500 dark:bg-stone-800">
-              {inboxTasks.length}
-            </span>
-            <div className="h-px flex-1 bg-stone-200 dark:bg-stone-800"></div>
+            <span className="font-mono text-[10px]">{inboxTasks.length}</span>
           </div>
-          <div className="space-y-2">
+
+          {/* Task List */}
+          <div className="space-y-1">
             {inboxTasks.length === 0 && (
-              <div className="rounded-lg border border-dashed border-stone-200 py-3 text-center dark:border-stone-800">
-                <p className="text-[10px] text-stone-400">Cmd+K to capture thoughts</p>
-              </div>
+              <div className="py-2 text-[10px] text-stone-300 italic">Inbox zero.</div>
             )}
+
             {inboxTasks.map((task) => (
               <DraggableTask key={task.id} task={task}>
-                <div className="group flex cursor-grab items-center gap-3 rounded-xl border border-stone-200 bg-white p-2.5 shadow-sm transition-all duration-200 hover:border-orange-300 hover:shadow-md active:cursor-grabbing dark:border-stone-800/60 dark:bg-[#262626] dark:hover:border-orange-700/50">
-                  <div className="flex-none">
-                    <div className="h-2 w-2 rounded-full bg-orange-400/80 ring-2 ring-orange-50 dark:ring-orange-900/10"></div>
-                  </div>
+                {/* Ghost UI Item */}
+                <div className="group flex cursor-grab items-center gap-2 rounded-md py-1 transition-all hover:bg-white hover:shadow-sm hover:px-2 -mx-2 dark:hover:bg-stone-800">
+                  {/* Priority Dot */}
+                  <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-orange-400 ring-2 ring-transparent group-hover:ring-orange-100 dark:group-hover:ring-orange-900/20"></div>
+
+                  {/* Editable Text */}
                   <div className="min-w-0 flex-1">
                     <EditableText
                       id={task.id}
                       initialText={task.title}
                       type="task"
-                      className="block truncate text-sm font-medium text-stone-700 transition-colors hover:text-orange-600 dark:text-stone-200"
+                      className="block truncate text-xs font-medium text-stone-600 transition-colors group-hover:text-stone-900 dark:text-stone-400 dark:group-hover:text-stone-200"
                     />
                   </div>
-                  <div className="ml-auto opacity-0 transition-opacity group-hover:opacity-100">
+
+                  {/* Ghost Delete Action */}
+                  <div className="opacity-0 transition-opacity group-hover:opacity-100">
                     <form action={deleteTask}>
                       <input type="hidden" name="taskId" value={task.id} />
-                      <button className="text-stone-300 hover:text-red-500" title="Dismiss Thought">
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M18 6L6 18M6 6l12 12" />
-                          <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
+                      <button className="text-stone-300 hover:text-red-500">
+                        <XIcon className="h-3 w-3" />
                       </button>
                     </form>
                   </div>
                 </div>
               </DraggableTask>
             ))}
+
+            {/* Ghost Input (The Line) */}
+            <div className="relative pt-2">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 text-stone-300">
+                <Plus className="h-3 w-3" />
+              </div>
+              <input
+                placeholder="Capture a thought..."
+                className="w-full bg-transparent border-b border-dashed border-stone-200 py-1.5 pl-5 text-sm text-stone-600 placeholder:text-stone-300 focus:border-orange-500 focus:outline-none dark:border-stone-800 dark:text-stone-300 dark:placeholder:text-stone-700"
+              // Optional: Add onKeyDown handler here to submit via Client Action if needed
+              />
+              <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] font-bold text-stone-300">⌘K</span>
+            </div>
           </div>
         </div>
 
-        {/* STRATEGIC GOALS HEADER */}
-        {tree.length > 0 && (
-          <div className="mt-8 mb-4 flex items-center gap-2 px-4">
-            <span className="text-[11px] font-bold tracking-widest text-stone-400 uppercase">
+        {/* STRATEGIC GOALS SECTION */}
+        <div id="tour-goals">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-xs font-bold tracking-widest text-stone-400 uppercase">
               Strategic Goals
             </span>
-            <div className="h-px flex-1 bg-stone-200 dark:bg-stone-800"></div>
           </div>
-        )}
 
-        {/* GOALS LIST */}
-        <div id="tour-goals" className="space-y-6 px-2">
-          {tree.map((goal) => (
-            <SidebarGoal key={goal.id} goal={goal} />
-          ))}
-        </div>
+          <div className="space-y-1">
+            {tree.map((goal) => (
+              <SidebarGoal key={goal.id} goal={goal} />
+            ))}
+          </div>
 
-        {/* ADD GOAL FORM */}
-        <div className="mt-8 px-4">
-          <form action={addGoal} className="group relative">
-            <div className="absolute top-1/2 left-3 -translate-y-1/2 text-stone-400 transition-colors group-focus-within:text-orange-500">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </div>
+          {/* New Goal Input (Ghost UI) */}
+          <form action={addGoal} className="mt-4 group flex items-center gap-2 opacity-60 transition-opacity hover:opacity-100">
+            <Plus className="h-3.5 w-3.5 text-stone-400" />
             <input
               name="title"
-              placeholder="New Strategic Goal..."
-              className="w-full rounded-xl border border-transparent bg-stone-100 py-3 pr-4 pl-10 text-sm font-medium text-stone-800 shadow-sm transition-all outline-none placeholder:text-stone-400 focus:border-orange-300 focus:bg-white focus:shadow-md dark:bg-stone-800/50 dark:text-stone-200 dark:focus:border-orange-800/50 dark:focus:bg-stone-800"
+              placeholder="Add new goal..."
+              className="flex-1 bg-transparent py-1 text-sm font-medium text-stone-600 outline-none placeholder:text-stone-300 focus:text-stone-900 dark:text-stone-400 dark:placeholder:text-stone-700 dark:focus:text-stone-200"
             />
           </form>
         </div>
       </div>
 
-      <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-12 bg-gradient-to-t from-[#F5F5F4] to-transparent dark:from-[#18181b]"></div>
+      {/* Footer Gradient Fade */}
+      <div className="pointer-events-none absolute right-0 bottom-0 left-0 h-16 bg-gradient-to-t from-[#FAFAF9] to-transparent dark:from-[#111]"></div>
     </DroppableDay>
   )
 
