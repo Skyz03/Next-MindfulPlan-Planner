@@ -1,27 +1,43 @@
 'use client'
 
 import { useDroppable } from '@dnd-kit/core'
-import DraggableTask from './DraggableTask'
 import { useEffect, useState, useRef, useOptimistic, startTransition } from 'react'
 import { scheduleTaskTime, toggleTask, updateTaskDuration, updateTaskDescription } from '@/features/tasks/actions'
 import TaskTimer from './TaskTimer'
 import DurationInput from '@/core/ui/DurationInput'
 import { FileText, X, Clock, Calendar } from 'lucide-react'
 import { Task } from '@/types'
+import DraggableTask from './DraggableTask' // Ensure this path is correct for your project
+
+// ✅ Define Props Interface
+interface TimeGridProps {
+  tasks: Task[]
+}
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5) // 5 AM to 10 PM
 const PIXELS_PER_HOUR = 140
 
-export default function TimeGrid({ tasks }: { tasks: any[] }) {
+export default function TimeGrid({ tasks: serverTasks }: TimeGridProps) {
   const [now, setNow] = useState<Date | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const [isMobileDockOpen, setIsMobileDockOpen] = useState(false)
 
-  // 🆕 STATE: Track which task's note is open
-  const [activeNoteTask, setActiveNoteTask] = useState<any>(null)
+  // ✅ 1. INITIALIZE LOCAL STATE
+  // We need this so we can update 'tasks' instantly when checking a box
+  const [tasks, setTasks] = useState<Task[]>(serverTasks)
 
-  // 1. OPTIMISTIC STATE
+  // 🆕 STATE: Track which task's note is open
+  const [activeNoteTask, setActiveNoteTask] = useState<Task | null>(null)
+
+  // ✅ 2. SYNC WITH SERVER
+  // If the server sends new data (e.g. after a refresh), update local state
+  useEffect(() => {
+    setTasks(serverTasks)
+  }, [serverTasks])
+
+  // ✅ 3. OPTIMISTIC STATE
+  // This handles the immediate visual feedback
   const [optimisticTasks, setOptimisticTask] = useOptimistic(
     tasks,
     (state, { taskId, changes }: { taskId: string; changes: any }) => {
@@ -66,11 +82,24 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
     await scheduleTaskTime(taskId, null)
   }
 
+  // ✅ 4. THE FIX FOR JUMPING CHECKBOXES
   function handleToggle(taskId: string, currentStatus: boolean) {
     const newStatus = !currentStatus
+
+    // A. Optimistic UI (For speed)
     startTransition(() => {
       setOptimisticTask({ taskId, changes: { is_completed: newStatus } })
     })
+
+    // B. Local State Update (For Stability)
+    // This tells dnd-kit the new state so it doesn't revert when you drag
+    setTasks((prevTasks) =>
+      prevTasks.map((t) =>
+        t.id === taskId ? { ...t, is_completed: newStatus } : t
+      )
+    )
+
+    // C. Server Update (For Database)
     toggleTask(taskId, newStatus)
   }
 
@@ -107,10 +136,12 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
 
           {/* RENDER TASKS */}
           {scheduledTasks.map((task) => {
+            // Safety check for start_time
+            if (!task.start_time) return null;
+
             const [h, m] = task.start_time.split(':').map(Number)
             const startHour = 5
             const topPosition = (h - startHour) * PIXELS_PER_HOUR + (m / 60) * PIXELS_PER_HOUR + 16
-
             const height = Math.max((task.duration / 60) * PIXELS_PER_HOUR, 80)
 
             return (
@@ -124,7 +155,6 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
                 unschedule={unschedule}
                 handleToggle={handleToggle}
                 handleDurationChange={handleDurationChange}
-                // 🆕 Pass the opener function
                 onOpenNotes={() => setActiveNoteTask(task)}
               />
             )
@@ -209,6 +239,7 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
           onClick={() => setIsMobileDockOpen(!isMobileDockOpen)}
           className="fixed right-6 bottom-6 z-50 flex items-center gap-2 rounded-full bg-stone-900 px-5 py-3 text-sm font-bold text-white shadow-xl transition-all hover:scale-105 active:scale-95 dark:bg-white dark:text-black"
         >
+          {/* Icons... */}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
           Unscheduled ({unscheduledTasks.length})
           {isMobileDockOpen ? (
@@ -258,7 +289,7 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
         </div>
       </div>
 
-      {/* 🆕 TASK NOTE POPUP MODAL */}
+      {/* TASK NOTE POPUP MODAL */}
       {activeNoteTask && (
         <TaskNoteModal
           task={activeNoteTask}
@@ -270,7 +301,7 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
   )
 }
 
-// ⚡️ UPDATED SUB-COMPONENT
+// ⚡️ SUB-COMPONENT: Task Card in Grid
 function TimeGridTaskCard({ task, isDone, isRunning, height, topPosition, unschedule, handleToggle, handleDurationChange, onOpenNotes }: any) {
 
   return (
@@ -300,7 +331,7 @@ function TimeGridTaskCard({ task, isDone, isRunning, height, topPosition, unsche
               onPointerDown={(e) => e.stopPropagation()}
             >
               <div className="font-mono text-[10px] text-stone-400">
-                {task.start_time.slice(0, 5)}
+                {task.start_time?.slice(0, 5)}
               </div>
               <div className="h-3 w-px bg-stone-200 dark:bg-stone-700"></div>
               <DurationInput
@@ -318,7 +349,7 @@ function TimeGridTaskCard({ task, isDone, isRunning, height, topPosition, unsche
             }}
             className="rounded-md p-1.5 text-stone-300 transition-colors hover:bg-stone-100 hover:text-red-500 dark:hover:bg-stone-800"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <X className="h-3 w-3" />
           </button>
         </div>
 
@@ -332,7 +363,7 @@ function TimeGridTaskCard({ task, isDone, isRunning, height, topPosition, unsche
               <TaskTimer task={task} />
             </div>
 
-            {/* 📝 NOTES BUTTON (Triggers Modal) */}
+            {/* 📝 NOTES BUTTON */}
             <button
               onClick={(e) => { e.stopPropagation(); onOpenNotes() }}
               className={`flex h-6 w-6 items-center justify-center rounded-md transition-colors ${task.description ? 'text-stone-600 bg-stone-100 dark:text-stone-300 dark:bg-stone-700' : 'text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'}`}
@@ -360,12 +391,12 @@ function TimeGridTaskCard({ task, isDone, isRunning, height, topPosition, unsche
   )
 }
 
-// 🆕 THE POPUP COMPONENT
+// ⚡️ SUB-COMPONENT: Modal
 function TaskNoteModal({ task, onClose }: { task: Task, onClose: () => void }) {
-  // Local state for the textarea value
   const [desc, setDesc] = useState(task.description || '')
 
   const handleSave = () => {
+    // ✅ SAFETY GUARD: Prevent crash if task has no ID
     if (!task.id) return
     updateTaskDescription(task.id, desc)
     onClose()
@@ -377,18 +408,16 @@ function TaskNoteModal({ task, onClose }: { task: Task, onClose: () => void }) {
         className="w-full max-w-lg overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl dark:border-stone-800 dark:bg-[#1C1917] animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
         <div className="flex items-center justify-between border-b border-stone-100 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-900">
           <div className="flex items-center gap-3">
             <div className={`h-3 w-3 rounded-full ${task.is_completed ? 'bg-emerald-500' : 'bg-stone-300'}`} />
             <h3 className="font-bold text-stone-800 dark:text-stone-100 line-clamp-1">{task.title}</h3>
           </div>
-          <button onClick={handleSave} className="rounded-full p-1 text-stone-400 hover:bg-stone-200 hover:text-stone-600 dark:hover:bg-stone-800">
+          <button onClick={onClose} className="rounded-full p-1 text-stone-400 hover:bg-stone-200 hover:text-stone-600 dark:hover:bg-stone-800">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* BODY */}
         <div className="p-0">
           <textarea
             autoFocus
@@ -399,7 +428,6 @@ function TaskNoteModal({ task, onClose }: { task: Task, onClose: () => void }) {
           />
         </div>
 
-        {/* FOOTER */}
         <div className="flex items-center justify-between border-t border-stone-100 bg-stone-50 px-6 py-3 dark:border-stone-800 dark:bg-stone-900">
           <div className="flex gap-4 text-xs text-stone-400">
             <span className="flex items-center gap-1.5"><Clock className="h-3 w-3" /> {task.duration}m scheduled</span>
