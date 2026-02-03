@@ -6,12 +6,11 @@ import {
   Plus,
   Trash2,
   X,
-  Calendar,
   Clock,
   LayoutTemplate,
   Repeat,
   BatteryMedium,
-  Settings2, // New icon for the capacity setting
+  Settings2,
 } from 'lucide-react'
 import { addBlueprintItem, deleteBlueprintItem, applyBlueprintToWeek } from '@/features/planning/actions'
 import { useFormStatus } from 'react-dom'
@@ -24,7 +23,6 @@ export default function BlueprintModal({
   currentDateStr: string
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  // ✅ NEW: Allow user to adjust capacity (Default 40, but flexible for rituals)
   const [weeklyCapacity, setWeeklyCapacity] = useState(40)
 
   // --- 1. CALCULATE WEEKLY LOAD ---
@@ -58,21 +56,26 @@ export default function BlueprintModal({
 
   const displayOrder = [7, 8, 9, 1, 2, 3, 4, 5, 6, 0, null]
 
+  // ✅ NEW: "Porsche" Style Trigger (Icon Only)
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-stone-500 transition-colors hover:bg-stone-200 md:py-1.5 dark:hover:bg-stone-800"
+        className="group relative flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-400 shadow-sm transition-all duration-200 hover:bg-stone-100 hover:text-stone-600 dark:border-stone-800 dark:bg-[#1C1917] dark:hover:bg-stone-800"
       >
-        <LayoutTemplate className="h-4 w-4 md:h-3.5 md:w-3.5" />
-        Blueprint
+        <LayoutTemplate className="h-4 w-4 stroke-[2.5]" />
+
+        {/* Ghost Tooltip */}
+        <span className="absolute top-full mt-2 z-50 w-auto whitespace-nowrap pointer-events-none scale-0 rounded-md bg-stone-900 px-2 py-1 text-[10px] font-bold text-white opacity-0 shadow-xl transition-all group-hover:scale-100 group-hover:opacity-100 dark:bg-white dark:text-black">
+          Edit Blueprint
+        </span>
       </button>
     )
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 p-0 backdrop-blur-sm md:p-4">
-      <div className="animate-in zoom-in-95 flex h-full w-full flex-col overflow-hidden border border-stone-200 bg-[#FAFAF9] shadow-2xl duration-200 md:h-auto md:max-h-[90vh] md:max-w-5xl md:rounded-3xl dark:border-stone-800 dark:bg-[#1C1917]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-900/60 p-0 backdrop-blur-sm md:p-4 animate-in fade-in duration-200">
+      <div className="flex h-full w-full flex-col overflow-hidden border border-stone-200 bg-[#FAFAF9] shadow-2xl duration-200 md:h-auto md:max-h-[90vh] md:max-w-5xl md:rounded-3xl dark:border-stone-800 dark:bg-[#1C1917] animate-in zoom-in-95">
 
         {/* HEADER */}
         <div className="flex-shrink-0 border-b border-stone-200 bg-white p-4 md:p-8 md:pb-6 dark:border-stone-800 dark:bg-[#262626]">
@@ -98,7 +101,7 @@ export default function BlueprintModal({
           <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 md:p-4 dark:border-stone-800 dark:bg-stone-900">
             <div className="mb-2 flex items-center justify-between text-xs font-medium md:text-sm">
 
-              {/* Left Side: Usage */}
+              {/* Usage */}
               <div className="flex items-center gap-2 text-stone-600 dark:text-stone-300">
                 <BatteryMedium className="h-3 w-3 text-orange-500 md:h-4 md:w-4" />
                 <span>
@@ -109,7 +112,7 @@ export default function BlueprintModal({
                 </span>
               </div>
 
-              {/* Right Side: Capacity Setting (Editable) */}
+              {/* Capacity Setting */}
               <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
                 <span className="font-bold text-stone-900 dark:text-white">{remainingHours}h</span>{' '}
                 Free of
@@ -136,7 +139,6 @@ export default function BlueprintModal({
               <div className="flex-1 bg-transparent"></div>
             </div>
 
-            {/* Context Helper */}
             <div className="mt-1 flex justify-between text-[10px] text-stone-400">
               <span>Rituals & Routines</span>
               <span>{percentageUsed > 100 ? 'Over Capacity!' : 'Total Budget'}</span>
@@ -144,8 +146,9 @@ export default function BlueprintModal({
           </div>
         </div>
 
-        {/* CONTENT AREA (Same as before) */}
+        {/* CONTENT AREA */}
         <div className="flex flex-1 flex-col overflow-y-auto md:flex-row">
+
           {/* LEFT COLUMN: Editor */}
           <div className="flex-shrink-0 border-b border-stone-200 bg-stone-50 p-4 md:w-[350px] md:border-r md:border-b-0 md:p-8 dark:border-stone-800 dark:bg-[#202022]">
             <div className="mb-4 flex items-center justify-between md:mb-6">

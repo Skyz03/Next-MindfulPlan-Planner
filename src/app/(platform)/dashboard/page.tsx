@@ -13,12 +13,11 @@ import { ThemeToggle } from '@/core/ui/ThemeToggle'
 import EditableText from '@/core/ui/EditableText'
 import DashboardShell from '@/core/layout/DashboardShell'
 import TimeGrid from '@/features/planning/components/TimeGrid'
-import ReviewTrigger from '@/features/reflection/components/ReviewTrigger'
 import SidebarGoal from '@/features/goals/components/SidebarGoal'
 import OnboardingTour from '@/features/onboarding/components/OnboardingTour'
 import BlueprintModal from '@/features/planning/components/BlueprintModal'
 import StrategyDashboard from '@/features/strategy/components/StrategyDashboard'
-import HeaderTimer from '@/features/focus/components/HeaderTimer'
+import ViewToggle from '@/core/ui/ViewToggle'
 
 export default async function Dashboard({
   searchParams,
@@ -339,7 +338,7 @@ export default async function Dashboard({
             {/* pl-8 allows space for mobile hamburger */}
             {/* ✅ RESPONSIVE: Hide Title on Mobile */}
             <h1 className="hidden font-serif text-lg font-bold text-stone-900 md:block dark:text-stone-100">
-              {viewMode === 'plan' ? 'Weekly Strategy' : 'Daily Focus'}
+              {viewMode === 'plan' ? 'Weekly' : 'Daily '}
             </h1>
             {/* DATE NAVIGATION */}
             <div className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-100 p-1 shadow-sm md:gap-3 md:pr-4 dark:border-stone-800/50 dark:bg-stone-800/50">
@@ -398,8 +397,6 @@ export default async function Dashboard({
 
           {/* RIGHT: Tools & View Toggle */}
           <div className="flex items-center gap-2 md:gap-4">
-            {/* 1. Timer (Always visible) */}
-            <HeaderTimer />
 
             {/* 2. Blueprint Modal - ✅ RESPONSIVE: Hide on mobile to declutter */}
             <div className="hidden md:block">
@@ -410,31 +407,7 @@ export default async function Dashboard({
             <div className="hidden h-6 w-px bg-stone-200 md:block dark:bg-stone-800"></div>
 
             {/* 3. View Toggle */}
-            <div id="tour-planner" className="flex rounded-lg bg-stone-200 p-1 dark:bg-stone-800">
-              <Link
-                id="view-toggle-focus"
-                href={`/dashboard?date=${normalizedDateStr}&view=focus`}
-                className={`rounded-md px-3 py-1 text-xs font-bold transition-all md:px-4 ${viewMode === 'focus' ? 'bg-white text-stone-800 shadow-sm dark:bg-stone-600 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}
-              >
-                Focus
-              </Link>
-              <Link
-                id="view-toggle-plan"
-                href={`/dashboard?date=${normalizedDateStr}&view=plan`}
-                className={`rounded-md px-3 py-1 text-xs font-bold transition-all md:px-4 ${viewMode === 'plan' ? 'bg-white text-stone-800 shadow-sm dark:bg-stone-600 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}
-              >
-                Plan
-              </Link>
-
-              <Link
-                id="view-toggle-strategy"
-                href={`/dashboard?date=${normalizedDateStr}&view=strategy`}
-                className={`rounded-md px-3 py-1 text-xs font-bold transition-all md:px-4 ${viewMode === 'strategy' ? 'bg-white text-stone-800 shadow-sm dark:bg-stone-600 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}
-              >
-                Strategy
-              </Link>
-
-            </div>
+            <ViewToggle />
           </div>
         </div>
 
