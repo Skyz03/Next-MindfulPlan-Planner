@@ -9,7 +9,7 @@
 
 # MindfulPlan 🧠
 
-**MindfulPlan** is a modern, data-driven lifestyle planner built with **Next.js 16 (App Router)** and **Supabase**. It bridges the gap between long-term vision and daily execution by connecting high-level Goals to Weekly Rituals and Daily Focus tasks.
+**MindfulPlan** is a modern, data-driven lifestyle planner built with **Next.js 16 (App Router)** and **Supabase** for user auth. It bridges the gap between long-term vision and daily execution by connecting high-level Goals to Weekly Rituals and Daily Focus tasks.
 
 Featuring a premium **Glassmorphism UI**, fully responsive **Dark Mode**, and **Optimistic UI updates**, it feels like a native app on both desktop and mobile (PWA ready).
 
