@@ -158,7 +158,6 @@ export default function StrategyCard({ goal }: StrategyCardProps) {
                                             key={task.id}
                                             task={task}
                                             showDragHandle={false}
-                                            showStatusBadge={true}
                                             onToggle={() => task.id && toggleTask(task.id, !task.is_completed)}
                                         />
                                     ))

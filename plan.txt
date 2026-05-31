@@ -1,0 +1,98 @@
+UX Simplification Plan
+
+The Core Problem
+
+A new user lands on the dashboard with the sidebar closed, the TimeGrid empty, and no obvious first action. The core loop (Goal → Task → Schedule → Complete) is invisible.
+
+---
+Change 1 — Sidebar open by default
+
+src/core/layout/DashboardShell.tsx
+
+useState(false) → useState(true). The sidebar has the most important onboarding affordance (Goals + Inbox) — it should be the first thing visiblger. Also remove the auto-close whenswitching back to Focus mode so sidebar state is sticky.
+
+---
+Change 2 — Empty states with real CTAs
+
+┌───────────────────────┬─────────────────────────────────────────────────┐
+│         File          │                                 What to add                                  │
+├───────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ RitualsPanel.tsx      │ When tree.ler here. ↓ Add your first one        │
+│                       │ below." above the input                                                      │
+├───────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ TimeGrid.tsx          │ Dock empty state: "No tasks for today. Add one below or drag from Rituals."  │
+│                       │ + quick-add form (see Change 3)                                              │
+├───────────────────────┼─────────────────────────────────────────────────┤
+│ PlanningGrid.tsx      │ Each empty day column: subtle "No tasks — drop or add below" label           │
+├───────────────────────┼─────────────────────────────────────────────────┤
+│ StrategyDashboard.tsx │ Replace static "Create a Goal in the sidebar" with an actual Link/button     │
+├───────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+│ NorthStarHeader.tsx   │ Instead of r goals · Define your strategy →"    │
+│                       │ linking to ?view=strategy                                                    │
+└───────────────────────┴──────────────────────────────────────────────────────────────────────────────┘
+
+---
+Change 3 — Quick-add task to today (bi
+
+src/features/planning/components/TimeGdashboard/page.tsx
+
+Current flow to add a task to today: ⌘K → inbox → drag to calendar = 3 steps.
+
+Add a small <form> at the top of the Unscheduled dock:
+- placeholder="Add a task for today..."
+- On Enter → calls addTask server action with today's date directly
+- todayStr passed as a new prop from dmputed there)
+
+One step. Done.
+
+---
+Change 4 — Toast feedback system
+
+New: src/core/ui/Toast.tsx + src/core/
+
+Simple context-based toast: one at a time, auto-dismiss in 2.5s, bottom-center. API: showToast('Goal added').
+
+Wire up in:
+- src/app/layout.tsx — add ToastProvider
+- InboxCapture.tsx — showToast('Captur
+- SidebarGoal.tsx — showToast('Step added')
+- New AddGoalForm.tsx client wrapper — showToast('Goal added') (the goal form currently uses a server
+action directly, needs a thin client w
+
+---
+Change 5 — Keyboard shortcut hints in
+
+src/app/(platform)/dashboard/page.tsx
+
+Add tiny <kbd> chips below the view toggle (desktop only): F Focus · P Plan · S Strategy. Subtle, no
+layout impact. Optionally wire up a useys to actually switch views.
+
+---
+Files touched
+
+src/core/layout/DashboardShell.tsx
+src/features/planning/components/RitualsPanel.tsx
+src/features/planning/components/TimeG
+src/features/planning/components/PlanningGrid.tsx
+src/features/strategy/components/StrategyDashboard.tsx
+src/features/strategy/components/North
+src/app/(platform)/dashboard/page.tsx
+src/core/ui/Toast.tsx                     ← new
+src/core/providers/ToastProvider.tsx      ← new
+src/features/planning/components/AddGoalForm.tsx  ← new (client wrapper)
+src/app/layout.tsx
+src/features/goals/components/SidebarGoal.tsx
+src/features/inbox/components/InboxCap
+
+---
+Verification
+
+1. Open /dashboard as new user → sidebar open, goals nudge visible, dock has quick-add form
+2. Type goal → Enter → toast "Goal added", goal appears
+3. Type in dock quick-add → Enter → task in Unscheduled immediately
+4. ⌘K → capture → toast "Captured to i
+5. ?view=strategy with no goals → NorthStarHeader shows prompt, Strategy canvas has actionable button
+6. pnpm build → zero type errors
+
+---
+Ready to implement whenever you say go.

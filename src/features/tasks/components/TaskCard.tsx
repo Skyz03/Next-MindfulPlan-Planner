@@ -4,10 +4,19 @@ import { useState, useEffect, useRef } from 'react'
 import { GripVertical, Check, Trash2, FileText, Pencil } from 'lucide-react'
 import { updateTaskDescription, updateTaskPriority, updateTask } from '@/features/tasks/actions'
 import PrioritySelect from '@/features/tasks/components/PrioritySelect'
-import { Task } from '@/types'
+// Minimal shape TaskCard actually needs — both DbTask and Zod Task satisfy this
+interface TaskShape {
+    id?: string
+    title: string
+    is_completed: boolean
+    priority: 'low' | 'medium' | 'high'
+    description?: string | null
+    start_time?: string | null
+    duration?: number
+}
 
 interface TaskCardProps {
-    task: Task
+    task: TaskShape
     isDragging?: boolean
     showDragHandle?: boolean
     onToggle?: () => void

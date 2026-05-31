@@ -1,26 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Plus, Trash2, GripVertical, FileText } from 'lucide-react'
+import { ChevronDown, Plus, Trash2, GripVertical } from 'lucide-react'
 import { useDraggable } from '@dnd-kit/core'
 import EditableText from '@/core/ui/EditableText'
-import AIGenerateButton from '@/features/ai/AIGenerateButton'
 import { addTask, updateTaskDescription, updateTaskPriority } from '@/features/tasks/actions'
 import { deleteGoal as deleteGoalAction } from '@/features/goals/actions'
 import DurationInput from '@/core/ui/DurationInput'
-import PriorityBadge from '@/features/tasks/components/PriorityBadge'
 import PrioritySelect from '@/features/tasks/components/PrioritySelect'
 import TaskCard from '@/features/tasks/components/TaskCard'
-import { Task } from '@/types'
+import { DbTask, GoalWithSteps } from '@/types'
 
-export default function SidebarGoal({ goal }: { goal: any }) {
+export default function SidebarGoal({ goal }: { goal: GoalWithSteps }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [addPriority, setAddPriority] = useState('medium')
 
   return (
     <div className="group/goal relative w-full pl-2">
-      {/* Connector Line */}
-      <div className="absolute top-8 bottom-0 left-[19px] w-px bg-stone-200 dark:bg-stone-800"></div>
+      <div className="absolute top-8 bottom-0 left-[19px] w-px bg-stone-200 dark:bg-stone-800" />
 
       {/* HEADER */}
       <div className="relative mb-2 flex items-start gap-3">
@@ -31,7 +28,7 @@ export default function SidebarGoal({ goal }: { goal: any }) {
           {isExpanded ? (
             <ChevronDown className="h-3.5 w-3.5 text-stone-500" />
           ) : (
-            <div className="h-1.5 w-1.5 rounded-full bg-orange-500"></div>
+            <div className="h-1.5 w-1.5 rounded-full bg-orange-500" />
           )}
         </button>
 
@@ -47,7 +44,6 @@ export default function SidebarGoal({ goal }: { goal: any }) {
             </h3>
 
             <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover/title:opacity-100">
-              <AIGenerateButton goalId={goal.id} goalTitle={goal.title} />
               <form action={deleteGoalAction}>
                 <input type="hidden" name="goalId" value={goal.id} />
                 <button className="rounded p-1 text-stone-300 transition-colors hover:bg-red-50 hover:text-red-400 dark:hover:bg-red-900/20">
@@ -73,26 +69,22 @@ export default function SidebarGoal({ goal }: { goal: any }) {
         <div className="animate-in slide-in-from-top-2 fade-in relative space-y-2 pr-1 pb-4 pl-9 duration-200">
           {goal.steps.length === 0 && (
             <div className="flex items-center gap-2 py-2 opacity-50">
-              <div className="h-px w-3 bg-stone-300"></div>
-              <p className="text-[10px] text-stone-500 italic">No rituals yet.</p>
+              <div className="h-px w-3 bg-stone-300" />
+              <p className="text-[10px] text-stone-500 italic">No steps yet.</p>
             </div>
           )}
 
-          {goal.steps.map((task: Task) => (
+          {goal.steps.map((task: DbTask) => (
             <SidebarTaskItem key={task.id} task={task} />
           ))}
 
-          {/* ADD STEP FORM */}
-          {/* ✅ FIXED: Added relative z-[100] so popup renders ON TOP of next goal */}
           <form
             onSubmit={async (e) => {
-              e.preventDefault();
-              // create a FormData from this form node
-              const form = e.currentTarget;
-              const formData = new FormData(form);
-              // await returned promise, but ignore data, since we're not handling errors here
-              await addTask(formData);
-              // optionally clear form fields here if desired
+              e.preventDefault()
+              const form = e.currentTarget
+              const formData = new FormData(form)
+              await addTask(formData)
+              form.reset()
             }}
             className="group/add relative z-[100] mt-2 opacity-100 transition-opacity hover:opacity-100 md:opacity-60"
           >
@@ -112,19 +104,12 @@ export default function SidebarGoal({ goal }: { goal: any }) {
                 className="min-w-[100px] flex-1 border-b border-transparent bg-transparent py-1.5 text-xs text-stone-600 transition-colors outline-none placeholder:text-stone-300 focus:border-stone-300 md:py-1 dark:text-stone-400 dark:focus:border-stone-600"
               />
 
-              {/* ✅ FIXED: Removed 'scale-90' transform wrapper which traps z-index */}
               <div className="flex items-center gap-2 opacity-0 transition-opacity group-hover/add:opacity-100 focus-within:opacity-100">
-
                 <div className="w-[60px]">
                   <DurationInput defaultMinutes={60} />
                 </div>
-
-                {/* Priority Select */}
                 <div className="min-w-[80px]">
-                  <PrioritySelect
-                    value={addPriority}
-                    onChange={setAddPriority}
-                  />
+                  <PrioritySelect value={addPriority} onChange={setAddPriority} />
                 </div>
               </div>
             </div>
@@ -136,16 +121,15 @@ export default function SidebarGoal({ goal }: { goal: any }) {
   )
 }
 
-function SidebarTaskItem({ task }: { task: Task }) {
-  // Use Draggable (Clone behavior) instead of Sortable
+function SidebarTaskItem({ task }: { task: DbTask }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `sidebar-${task.id}`,
-    data: { taskId: task.id, type: 'sidebar-task', duration: task.duration }
+    data: { taskId: task.id, type: 'sidebar-task', duration: task.duration },
   })
 
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+    : undefined
 
   return (
     <div style={style}>
@@ -155,7 +139,6 @@ function SidebarTaskItem({ task }: { task: Task }) {
         dragRef={setNodeRef}
         dragListeners={listeners}
         dragAttributes={attributes}
-        // Sidebar specific: slightly smaller text or padding if needed via className
         className="mb-1"
       />
     </div>
