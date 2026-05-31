@@ -21,10 +21,10 @@ export default async function NorthStarHeader() {
                     North Star Objectives
                 </h3>
                 <Link
-                    href="/strategy"
+                    href="/dashboard?view=strategy"
                     className="group flex items-center gap-1 text-[10px] font-medium text-indigo-400 transition-colors hover:text-indigo-600"
                 >
-                    View Strategy <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+                    View goals · Define your strategy <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
                 </Link>
             </div>
 

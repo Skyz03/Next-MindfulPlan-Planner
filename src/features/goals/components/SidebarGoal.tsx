@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ChevronDown, Plus, Trash2, GripVertical } from 'lucide-react'
 import { useDraggable } from '@dnd-kit/core'
 import EditableText from '@/core/ui/EditableText'
+import { useToast } from '@/core/providers/ToastProvider'
 import { addTask, updateTaskDescription, updateTaskPriority } from '@/features/tasks/actions'
 import { deleteGoal as deleteGoalAction } from '@/features/goals/actions'
 import DurationInput from '@/core/ui/DurationInput'
@@ -14,6 +15,7 @@ import { DbTask, GoalWithSteps } from '@/types'
 export default function SidebarGoal({ goal }: { goal: GoalWithSteps }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [addPriority, setAddPriority] = useState('medium')
+  const { showToast } = useToast()
 
   return (
     <div className="group/goal relative w-full pl-2">
@@ -83,7 +85,10 @@ export default function SidebarGoal({ goal }: { goal: GoalWithSteps }) {
               e.preventDefault()
               const form = e.currentTarget
               const formData = new FormData(form)
-              await addTask(formData)
+              const result = await addTask(formData)
+              if (!result?.error) {
+                showToast('Step added')
+              }
               form.reset()
             }}
             className="group/add relative z-[100] mt-2 opacity-100 transition-opacity hover:opacity-100 md:opacity-60"

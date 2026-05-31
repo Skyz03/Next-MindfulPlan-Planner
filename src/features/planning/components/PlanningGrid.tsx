@@ -73,11 +73,16 @@ export default function PlanningGrid({
 
               <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto px-4 py-2">
                 {dayTasks.map((task) => (
-                  <DraggableTask key={task.id} task={task}>
-                    <TaskItem task={task} />
-                  </DraggableTask>
-                ))}
-                <div className="h-12 w-full transition-all group-hover:h-24"></div>
+                <DraggableTask key={task.id} task={task}>
+                  <TaskItem task={task} />
+                </DraggableTask>
+              ))}
+              {dayTasks.length === 0 && (
+                <div className="rounded-3xl border border-dashed border-stone-200 bg-white/60 px-3 py-4 text-center text-xs text-stone-400 dark:border-stone-800 dark:bg-white/5">
+                  No tasks — drop or add below
+                </div>
+              )}
+              <div className="h-12 w-full transition-all group-hover:h-24"></div>
               </div>
             </DroppableDay>
           )

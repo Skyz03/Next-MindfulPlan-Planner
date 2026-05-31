@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Send } from 'lucide-react'
 import { addTask } from '@/features/tasks/actions'
+import { useToast } from '@/core/providers/ToastProvider'
 
 export default function InboxCapture() {
   const [isOpen, setIsOpen] = useState(false)
@@ -30,6 +31,8 @@ export default function InboxCapture() {
     }
   }, [isOpen])
 
+  const { showToast } = useToast()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
@@ -39,7 +42,10 @@ export default function InboxCapture() {
     formData.append('title', input.trim())
     formData.append('date_type', 'inbox')
     formData.append('priority', priority)
-    await addTask(formData)
+    const result = await addTask(formData)
+    if (!result?.error) {
+      showToast('Captured to inbox')
+    }
     setInput('')
     setIsSaving(false)
     setIsOpen(false)

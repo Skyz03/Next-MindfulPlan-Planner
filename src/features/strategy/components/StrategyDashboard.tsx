@@ -48,6 +48,12 @@ export default async function StrategyDashboard() {
                             <p className="mt-2 max-w-md text-stone-500">
                                 Create a Goal in the sidebar to begin designing your strategy.
                             </p>
+                            <a
+                                href="/dashboard?view=plan"
+                                className="mt-6 inline-flex items-center justify-center rounded-full bg-orange-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
+                            >
+                                Add your first goal
+                            </a>
                         </div>
                     )}
                 </div>

@@ -13,15 +13,13 @@ export default function DashboardShell({
   children: React.ReactNode
   viewMode: string
 }) {
-  // Default to closed in Focus mode, open in Plan mode
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  // Sidebar should be open by default and sticky across view switches.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
-  // Auto-open sidebar when switching to Plan mode
+  // Auto-open sidebar when switching to Plan mode, but do not auto-close.
   useEffect(() => {
     if (viewMode === 'plan') {
       setIsSidebarOpen(true)
-    } else {
-      setIsSidebarOpen(false)
     }
   }, [viewMode])
 

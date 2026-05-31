@@ -146,16 +146,23 @@ export default async function Dashboard({
           </div>
 
           {/* RIGHT: View Toggle */}
-          <div className="flex rounded-lg bg-stone-200 p-1 dark:bg-stone-800">
-            {(['focus', 'plan', 'strategy'] as const).map((mode) => (
-              <Link
-                key={mode}
-                href={`/dashboard?date=${normalizedDateStr}&view=${mode}`}
-                className={`rounded-md px-3 py-1 text-xs font-bold capitalize transition-all md:px-4 ${viewMode === mode ? 'bg-white text-stone-800 shadow-sm dark:bg-stone-600 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}
-              >
-                {mode}
-              </Link>
-            ))}
+          <div className="flex flex-col rounded-lg bg-stone-200 p-1 dark:bg-stone-800">
+            <div className="flex rounded-lg bg-stone-200 p-1 dark:bg-stone-800">
+              {(['focus', 'plan', 'strategy'] as const).map((mode) => (
+                <Link
+                  key={mode}
+                  href={`/dashboard?date=${normalizedDateStr}&view=${mode}`}
+                  className={`rounded-md px-3 py-1 text-xs font-bold capitalize transition-all md:px-4 ${viewMode === mode ? 'bg-white text-stone-800 shadow-sm dark:bg-stone-600 dark:text-stone-100' : 'text-stone-500 dark:text-stone-400'}`}
+                >
+                  {mode}
+                </Link>
+              ))}
+            </div>
+            <div className="hidden gap-2 px-2 pt-2 text-[10px] text-stone-500 md:flex">
+              <span className="rounded-full border border-stone-300 bg-white px-2 py-1 text-[10px] font-semibold dark:border-stone-700 dark:bg-stone-900">F Focus</span>
+              <span className="rounded-full border border-stone-300 bg-white px-2 py-1 text-[10px] font-semibold dark:border-stone-700 dark:bg-stone-900">P Plan</span>
+              <span className="rounded-full border border-stone-300 bg-white px-2 py-1 text-[10px] font-semibold dark:border-stone-700 dark:bg-stone-900">S Strategy</span>
+            </div>
           </div>
         </div>
 
@@ -204,7 +211,7 @@ export default async function Dashboard({
 
             {/* TIME GRID */}
             <div className="relative z-10 flex-1 overflow-hidden">
-              <TimeGrid tasks={allWeekTasks.filter((t) => t.due_date === normalizedDateStr)} />
+              <TimeGrid tasks={allWeekTasks.filter((t) => t.due_date === normalizedDateStr)} todayStr={todayStr} />
             </div>
           </div>
         )}

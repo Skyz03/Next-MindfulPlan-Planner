@@ -2,8 +2,9 @@
 
 import { useDroppable } from '@dnd-kit/core'
 import DraggableTask from './DraggableTask'
-import { useEffect, useState, useRef, useOptimistic, startTransition } from 'react'
-import { scheduleTaskTime, toggleTask, updateTaskDuration, updateTaskDescription } from '@/features/tasks/actions'
+import { FormEvent, useEffect, useRef, useState, useOptimistic, startTransition } from 'react'
+import { addTask, scheduleTaskTime, toggleTask, updateTaskDescription, updateTaskDuration } from '@/features/tasks/actions'
+import { useToast } from '@/core/providers/ToastProvider'
 import TaskTimer from './TaskTimer'
 import DurationInput from '@/core/ui/DurationInput'
 import { FileText, X, Clock, Calendar } from 'lucide-react'
@@ -12,11 +13,15 @@ import { DbTask } from '@/types'
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 5) // 5 AM to 10 PM
 const PIXELS_PER_HOUR = 140
 
-export default function TimeGrid({ tasks }: { tasks: any[] }) {
+export default function TimeGrid({ tasks, todayStr }: { tasks: any[]; todayStr: string }) {
   const [now, setNow] = useState<Date | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [isMobileDockOpen, setIsMobileDockOpen] = useState(false)
+  const [quickTitle, setQuickTitle] = useState('')
+  const [isAdding, setIsAdding] = useState(false)
+  const { showToast } = useToast()
 
   // 🆕 STATE: Track which task's note is open
   const [activeNoteTask, setActiveNoteTask] = useState<any>(null)
@@ -79,6 +84,24 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
       setOptimisticTask({ taskId, changes: { duration: newDuration } })
     })
     updateTaskDuration(taskId, newDuration)
+  }
+
+  async function handleQuickAdd(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const title = quickTitle.trim()
+    if (!title) return
+
+    setIsAdding(true)
+    const formData = new FormData()
+    formData.append('title', title)
+    formData.append('date_type', 'specific')
+    formData.append('specific_date', todayStr)
+    formData.append('priority', 'medium')
+
+    await addTask(formData)
+    setQuickTitle('')
+    setIsAdding(false)
+    showToast('Task added for today')
   }
 
   return (
@@ -182,6 +205,23 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
         <div className="border-b border-stone-100 bg-stone-50/50 p-4 dark:border-stone-800 dark:bg-stone-900/50">
           <h3 className="font-serif font-bold text-stone-700 dark:text-stone-200">Unscheduled</h3>
           <p className="text-xs text-stone-400">Tasks for today.</p>
+
+          <form onSubmit={handleQuickAdd} className="mt-4 flex gap-2">
+            <input
+              ref={inputRef}
+              value={quickTitle}
+              onChange={(event) => setQuickTitle(event.target.value)}
+              placeholder="Add a task for today..."
+              className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700 outline-none transition-all focus:border-orange-300 focus:ring-2 focus:ring-orange-200/70 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 dark:focus:border-orange-500/70"
+            />
+            <button
+              type="submit"
+              disabled={isAdding}
+              className="rounded-xl bg-orange-500 px-3 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Add
+            </button>
+          </form>
         </div>
         <DockDropZone>
           <div className="custom-scrollbar flex-1 space-y-3 overflow-y-auto p-3">
@@ -195,8 +235,9 @@ export default function TimeGrid({ tasks }: { tasks: any[] }) {
               </DraggableTask>
             ))}
             {unscheduledTasks.length === 0 && (
-              <div className="flex h-40 flex-col items-center justify-center text-stone-300">
-                <span className="text-xs italic">All scheduled</span>
+              <div className="flex h-40 flex-col items-center justify-center rounded-3xl border border-dashed border-stone-200 bg-stone-50 px-4 text-center text-sm text-stone-500 dark:border-stone-800 dark:bg-stone-900/50 dark:text-stone-400">
+                <p>No tasks for today.</p>
+                <p className="mt-1 text-xs">Add one below or drag from Rituals.</p>
               </div>
             )}
           </div>

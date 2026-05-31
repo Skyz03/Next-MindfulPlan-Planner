@@ -1,11 +1,11 @@
 import Link from 'next/link'
 import { LogOut, Calendar, Plus, X } from 'lucide-react'
 import { deleteTask } from '@/features/tasks/actions'
-import { addGoal } from '@/features/goals/actions'
 import { signOut } from '@/features/auth/actions'
 import { ThemeToggle } from '@/core/ui/ThemeToggle'
 import EditableText from '@/core/ui/EditableText'
 import SidebarGoal from '@/features/goals/components/SidebarGoal'
+import AddGoalForm from './AddGoalForm'
 import DraggableTask from './DraggableTask'
 import DroppableDay from './DroppableDay'
 import { DbTask, GoalWithSteps } from '@/types'
@@ -104,33 +104,34 @@ export default function RitualsPanel({ inboxTasks, tree }: RitualsPanelProps) {
         </div>
 
         {/* STRATEGIC GOALS */}
-        {tree.length > 0 && (
-          <div className="mt-8 mb-4 flex items-center gap-2 px-4">
-            <span className="text-[11px] font-bold tracking-widest text-stone-400 uppercase">
-              Strategic Goals
-            </span>
-            <div className="h-px flex-1 bg-stone-200 dark:bg-stone-800" />
+        {tree.length > 0 ? (
+          <>
+            <div className="mt-8 mb-4 flex items-center gap-2 px-4">
+              <span className="text-[11px] font-bold tracking-widest text-stone-400 uppercase">
+                Strategic Goals
+              </span>
+              <div className="h-px flex-1 bg-stone-200 dark:bg-stone-800" />
+            </div>
+
+            <div className="space-y-6 px-2">
+              {tree.map((goal) => (
+                <SidebarGoal key={goal.id} goal={goal} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="mt-8 rounded-3xl border border-dashed border-stone-200 bg-white/70 p-5 text-center text-stone-500 dark:border-stone-800 dark:bg-[#202020]">
+            <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+              No goals here yet.
+            </p>
+            <p className="mt-2 text-sm text-stone-500 dark:text-stone-400">
+              Add your first one below to begin building your plan.
+            </p>
           </div>
         )}
 
-        <div className="space-y-6 px-2">
-          {tree.map((goal) => (
-            <SidebarGoal key={goal.id} goal={goal} />
-          ))}
-        </div>
-
-        {/* ADD GOAL */}
         <div className="mt-8 px-4">
-          <form action={addGoal} className="group relative">
-            <div className="absolute top-1/2 left-3 -translate-y-1/2 text-stone-400 transition-colors group-focus-within:text-orange-500">
-              <Plus className="h-3.5 w-3.5" />
-            </div>
-            <input
-              name="title"
-              placeholder="New Strategic Goal..."
-              className="w-full rounded-xl border border-transparent bg-stone-100 py-3 pr-4 pl-10 text-sm font-medium text-stone-800 shadow-sm transition-all outline-none placeholder:text-stone-400 focus:border-orange-300 focus:bg-white focus:shadow-md dark:bg-stone-800/50 dark:text-stone-200 dark:focus:border-orange-800/50 dark:focus:bg-stone-800"
-            />
-          </form>
+          <AddGoalForm />
         </div>
       </div>
 
