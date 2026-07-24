@@ -7,7 +7,7 @@
 <!-- npm install clsx tailwind-merge  -->
 <!-- Implement the command Pallete  -->
 
-# MindfulPlan 🧠
+# MindfulPlan
 
 **MindfulPlan** is a modern, data-driven lifestyle planner built with **Next.js 16 (App Router)** and **Supabase** for user auth. It bridges the gap between long-term vision and daily execution by connecting high-level Goals to Weekly Rituals and Daily Focus tasks.
 
